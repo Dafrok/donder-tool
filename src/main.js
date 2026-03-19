@@ -3,6 +3,7 @@
  */
 
 import { calculateDifficulty, warmupPython } from './data-engine.js';
+import { analyzeTjaToJson } from './tjs-analyzer.ts';
 
 // DOM 元素
 const exportBtn = document.getElementById('exportBtn');
@@ -74,9 +75,58 @@ function isValidSongJson(songData) {
   return songData && typeof songData === 'object' && songData.courses && typeof songData.courses === 'object';
 }
 
+function isSupportedChartFile(fileName) {
+  return /\.(json|tja)$/i.test(fileName) && !fileName.includes('Sou-uchi');
+}
+
+function getDifficultyKey(value) {
+  const key = String(value || '').toLowerCase();
+  const mapping = {
+    '0': 'easy',
+    easy: 'easy',
+    '1': 'normal',
+    normal: 'normal',
+    '2': 'hard',
+    hard: 'hard',
+    '3': 'oni',
+    oni: 'oni',
+    '4': 'edit',
+    edit: 'edit'
+  };
+  return mapping[key] || key;
+}
+
+function normalizeSongJson(songData) {
+  if (!isValidSongJson(songData)) return songData;
+
+  const normalizedCourses = {};
+  for (const [difficultyKey, courseData] of Object.entries(songData.courses || {})) {
+    normalizedCourses[getDifficultyKey(difficultyKey)] = courseData;
+  }
+
+  let normalizedNoteTypes;
+  if (songData.noteTypes && typeof songData.noteTypes === 'object') {
+    normalizedNoteTypes = {};
+    for (const [difficultyKey, noteTypeData] of Object.entries(songData.noteTypes)) {
+      normalizedNoteTypes[getDifficultyKey(difficultyKey)] = noteTypeData;
+    }
+  }
+
+  const normalized = {
+    ...songData,
+    courses: normalizedCourses
+  };
+
+  if (normalizedNoteTypes) {
+    normalized.noteTypes = normalizedNoteTypes;
+  }
+
+  return normalized;
+}
+
 function extractSongMeta(relativePath, fileName) {
   const segments = (relativePath || '').split('/').filter(Boolean);
-  const fileBaseName = fileName.replace(/\.json$/i, '');
+  const fileBaseName = fileName.replace(/\.(json|tja)$/i, '');
 
   if (segments.length >= 3) {
     return {
@@ -177,27 +227,35 @@ function normalizeFileList(fileList) {
 }
 
 async function parseSongEntries(fileEntries, onProgress) {
-  const jsonFiles = fileEntries.filter(({ file }) => file.name.toLowerCase().endsWith('.json') && !file.name.includes('Sou-uchi'));
+  const chartFiles = fileEntries.filter(({ file }) => isSupportedChartFile(file.name));
 
-  if (!jsonFiles.length) {
-    throw new Error('未检测到可用的 JSON 谱面文件。请拖入包含谱面 JSON 的文件夹。');
+  if (!chartFiles.length) {
+    throw new Error('未检测到可用的谱面文件。请拖入包含 .json 或 .tja 的文件夹。');
   }
 
   const songs = [];
   const errors = [];
   const BATCH = 30;
 
-  for (let i = 0; i < jsonFiles.length; i++) {
+  for (let i = 0; i < chartFiles.length; i++) {
     if (i % BATCH === 0) {
-      showLoading(`正在读取文件... (${i}/${jsonFiles.length})`);
-      if (onProgress) onProgress(i, jsonFiles.length);
+      showLoading(`正在读取文件... (${i}/${chartFiles.length})`);
+      if (onProgress) onProgress(i, chartFiles.length);
       await new Promise((resolve) => setTimeout(resolve, 0));
     }
 
-    const { file, relativePath } = jsonFiles[i];
+    const { file, relativePath } = chartFiles[i];
     try {
       const text = await readFileAsText(file);
-      const data = JSON.parse(text);
+      let data;
+
+      if (file.name.toLowerCase().endsWith('.tja')) {
+        data = analyzeTjaToJson(text);
+      } else {
+        data = JSON.parse(text);
+      }
+
+      data = normalizeSongJson(data);
 
       if (!isValidSongJson(data)) {
         errors.push(`${relativePath}: 缺少 courses 字段或格式不正确`);
@@ -211,13 +269,13 @@ async function parseSongEntries(fileEntries, onProgress) {
     }
   }
 
-  if (onProgress) onProgress(jsonFiles.length, jsonFiles.length);
+  if (onProgress) onProgress(chartFiles.length, chartFiles.length);
   showLoading(`已读取 ${songs.length} 首歌曲，准备计算...`);
   await new Promise((resolve) => setTimeout(resolve, 0));
 
   if (!songs.length) {
     const detail = errors.slice(0, 8).join('\n');
-    throw new Error(`导入的 JSON 文件均无效。\n\n${detail}`);
+    throw new Error(`导入的谱面文件均无效。\n\n${detail}`);
   }
 
   if (errors.length) {
@@ -229,7 +287,7 @@ async function parseSongEntries(fileEntries, onProgress) {
 }
 
 async function handleImportedEntries(fileEntries, sourceLabel) {
-  const totalFiles = fileEntries.filter(({ file }) => file.name.toLowerCase().endsWith('.json') && !file.name.includes('Sou-uchi')).length;
+  const totalFiles = fileEntries.filter(({ file }) => isSupportedChartFile(file.name)).length;
 
   showLoading('正在读取导入的数据文件...');
   progressContainer.classList.remove('hidden');
