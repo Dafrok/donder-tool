@@ -61,12 +61,13 @@ export async function loadPythonModules() {
     try {
       console.log('📦 加载 Python 模块...');
 
+      const baseUrl = import.meta.env.BASE_URL;
       const moduleEntries = await Promise.all([
-        fetch('/体力.py').then(r => r.text()).then(code => ['体力.py', code]),
-        fetch('/复合.py').then(r => r.text()).then(code => ['复合.py', code]),
-        fetch('/节奏.py').then(r => r.text()).then(code => ['节奏.py', code]),
-        fetch('/高速.py').then(r => r.text()).then(code => ['高速.py', code]),
-        fetch('/calculator.py').then(r => r.text()).then(code => ['calculator.py', code])
+        fetch(baseUrl + '体力.py').then(r => r.text()).then(code => ['体力.py', code]),
+        fetch(baseUrl + '复合.py').then(r => r.text()).then(code => ['复合.py', code]),
+        fetch(baseUrl + '节奏.py').then(r => r.text()).then(code => ['节奏.py', code]),
+        fetch(baseUrl + '高速.py').then(r => r.text()).then(code => ['高速.py', code]),
+        fetch(baseUrl + 'calculator.py').then(r => r.text()).then(code => ['calculator.py', code])
       ]);
 
       await yieldToMain();
