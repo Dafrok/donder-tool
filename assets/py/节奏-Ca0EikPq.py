@@ -160,24 +160,36 @@ def compute_final_rhythm_difficulty(arr):
     
     total_weight = sum(weights)
     
+#    if total_weight <= 0:
+#        weighted_geometric = difficulties[0]
+#    else:
+#        weighted_sum_log = 0
+#        all_positive = True
+#        for i, difficulty in enumerate(difficulties):
+#            if difficulty > 0:
+#                weighted_sum_log += math.log(difficulty) * weights[i]
+#            else:
+#                all_positive = False
+#                weighted_geometric = 0
+#                break
+#        if all_positive:
+#            weighted_geometric = math.exp(weighted_sum_log / total_weight)
+#    
+#    final_ratio = weighted_geometric / len(arr) if len(arr) > 0 else 0
+#    
+#    return weighted_geometric, final_ratio
+
     if total_weight <= 0:
-        weighted_geometric = difficulties[0]
+        weighted_average = difficulties[0]
     else:
-        weighted_sum_log = 0
-        all_positive = True
+        weighted_sum = 0
         for i, difficulty in enumerate(difficulties):
-            if difficulty > 0:
-                weighted_sum_log += math.log(difficulty) * weights[i]
-            else:
-                all_positive = False
-                weighted_geometric = 0
-                break
-        if all_positive:
-            weighted_geometric = math.exp(weighted_sum_log / total_weight)
+            weighted_sum += difficulty * weights[i]
+        weighted_average = weighted_sum / total_weight
     
-    final_ratio = weighted_geometric / len(arr) if len(arr) > 0 else 0
+    final_ratio = weighted_average / len(arr) if len(arr) > 0 else 0
     
-    return weighted_geometric, final_ratio
+    return weighted_average, final_ratio
 
 
 # 测试函数
