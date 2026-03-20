@@ -135,8 +135,8 @@ def calculate_compound_difficulty(an: List[float], bn: List[int], T: float) -> f
             subarray_compound_difficulty += element_difficulty
         
         # 步骤8: 乘以ln(子数组长度)
-        if subarray_compound_difficulty > 0:
-            subarray_compound_difficulty *= math.log(subarray_len)
+      #  if subarray_compound_difficulty > 0:
+      #      subarray_compound_difficulty *= math.log(subarray_len)
         
         total_compound_difficulty += subarray_compound_difficulty
         current_index = subarray_indices[-1] + 1
