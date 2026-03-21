@@ -77,7 +77,8 @@ def calculate_rhythm_difficulty(arr, T):
                 ratio = larger / smaller
                 N = ratio - int(ratio)  # 取小数部分
             
-            a_coeff = 2 * math.sqrt(0.25 - (0.5 - N) ** 2)
+            # a_coeff = 2 * math.sqrt(0.25 - (0.5 - N) ** 2)
+            a_coeff = 2 * math.sqrt(0.25 - (0.5 - 1.5 * abs(N - 0.5)) ** 2)
             
             # 计算b系数（大间隔修正系数乘积）
             def get_interval_coeff(value):
