@@ -164,6 +164,7 @@ def calculate_compound_difficulty(an: List[float], bn: List[int], T: float) -> f
             subarray_compound_difficulty *= subarray_compound_difficulty  #  放大长段的影响
         
         total_compound_difficulty += subarray_compound_difficulty
+        total_compound_difficulty = math.sqrt(total_compound_difficulty)
         current_index = subarray_indices[-1] + 1
     
     return total_compound_difficulty
