@@ -171,17 +171,22 @@ def calculate_compound_difficulty(an: List[float], bn: List[int], T: float) -> f
 
     # total_compound_difficulty = math.sqrt(total_compound_difficulty)
 
-    if subarray_difficulties:
-        # 计算所有子数组难度的平方和
-        sum_of_squares = sum(diff * diff for diff in subarray_difficulties)
-        # 计算所有子数组难度的总和
+    if len(subarray_difficulties) > 0:
+    # 计算所有子数组难度的总和
         sum_of_difficulties = sum(subarray_difficulties)
-        
-        # 防止除以0
-        if sum_of_difficulties > 0:
-            total_compound_difficulty = sum_of_squares / sum_of_difficulties
+
+        # 计算子数组难度的方差
+        if len(subarray_difficulties) > 1:
+            # 计算平均值
+            mean_difficulty = sum_of_difficulties / len(subarray_difficulties)
+            # 计算方差
+            variance = sum((diff - mean_difficulty) ** 2 for diff in subarray_difficulties) / len(subarray_difficulties)
         else:
-            total_compound_difficulty = 0.0
+            # 如果只有一个子数组，方差为0
+            variance = 0.0
+    
+        # 计算总难度
+        total_compound_difficulty = sum_of_difficulties + 1 * variance
     else:
         total_compound_difficulty = 0.0
         
