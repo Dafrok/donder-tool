@@ -146,12 +146,12 @@ def calculate_compound_difficulty(an: List[float], bn: List[int], T: float) -> f
                 
                 # 3. 根据 value_to_check 与阈值的关系计算c
                 if value_to_check > upper_limit:
-                    c = 0.0
-                elif value_to_check < lower_limit:
                     c = 1.0
+                elif value_to_check < lower_limit:
+                    c = 0.0
                 else:
                     # 线性插值
-                    c = 1.0 - (value_to_check - lower_limit) / (upper_limit - lower_limit)
+                    c = (value_to_check - lower_limit) / (upper_limit - lower_limit)
             # 如果标记是'R'，c保持为1.0
 
             
