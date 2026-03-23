@@ -108,15 +108,17 @@ def calculate_rhythm_difficulty(arr, T):
             # 计算c系数（馅蜜修正系数）
 
             def get_filling_coeff(value):
-            # 计算阈值
+                # 计算阈值
+                upper_threshold = 30 / 260 * 1000
+                lower_threshold = 30 / 375 * 1000
     
-            if value >= 30 / 260 * 1000:
-                return 1.0
-            elif value <= 30 / 375 * 1000:
-                return 0.0
-            else:
-                # 线性插值
-                return (value - 30 / 375 * 1000) / (30 / 260 * 1000 - 30 / 375 * 1000)
+                if value >= upper_threshold:
+                    return 1.0
+                elif value <= lower_threshold:
+                    return 0.0
+                else:
+                    # 线性插值
+                    return (value - lower_threshold) / (upper_threshold - lower_threshold)
         
             # def get_filling_coeff(value):
             #     if value >= 100:
