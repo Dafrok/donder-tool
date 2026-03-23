@@ -140,9 +140,9 @@ def calculate_compound_difficulty(an: List[float], bn: List[int], T: float) -> f
             # 当前元素的标记必须为"L"才进行详细计算
             if current_lr_mark == 'L':
                 # 2. 计算阈值边界
-                lower_limit = 30/300 * 1000  # 300bpm的8分音
-                upper_limit = 30/180 * 1000  # 180bpm的8分音
-                value_to_check = an_extended[idx_i-1]  # 当前元素前一个位置的值
+                lower_limit = 1 / (30/180 * 1000)
+                upper_limit = 1 / (30/300 * 1000)
+                value_to_check = 1 / an_extended[idx_i-1]  # 当前元素前一个位置的值
                 
                 # 3. 根据 value_to_check 与阈值的关系计算c
                 if value_to_check > upper_limit:
