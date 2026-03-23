@@ -33,6 +33,7 @@ def calculate_compound_difficulty(an: List[float], bn: List[int], T: float) -> f
     
     # 步骤3-10: 提取子数组并计算复合难度
     total_compound_difficulty = 0.0
+    subarray_difficulties = []  # 存储所有子数组的原始难度
     current_index = 0
     
     while current_index < n:
@@ -158,15 +159,32 @@ def calculate_compound_difficulty(an: List[float], bn: List[int], T: float) -> f
             element_difficulty = a * b * c
             subarray_compound_difficulty += element_difficulty
         
-        if subarray_compound_difficulty > 0:
+        # if subarray_compound_difficulty > 0:
             # subarray_compound_difficulty *= math.log(subarray_len)
             # subarray_compound_difficulty *= subarray_len
-            subarray_compound_difficulty *= subarray_compound_difficulty  #  放大长段的影响
+            # subarray_compound_difficulty *= subarray_compound_difficulty  #  放大长段的影响
         
-        total_compound_difficulty += subarray_compound_difficulty
+        # total_compound_difficulty += subarray_compound_difficulty
+
+        subarray_difficulties.append(subarray_compound_difficulty)
         current_index = subarray_indices[-1] + 1
 
-    total_compound_difficulty = math.sqrt(total_compound_difficulty)
+    # total_compound_difficulty = math.sqrt(total_compound_difficulty)
+
+    if subarray_difficulties:
+        # 计算所有子数组难度的平方和
+        sum_of_squares = sum(diff * diff for diff in subarray_difficulties)
+        # 计算所有子数组难度的总和
+        sum_of_difficulties = sum(subarray_difficulties)
+        
+        # 防止除以0
+        if sum_of_difficulties > 0:
+            total_compound_difficulty = sum_of_squares / sum_of_difficulties
+        else:
+            total_compound_difficulty = 0.0
+    else:
+        total_compound_difficulty = 0.0
+        
     return total_compound_difficulty
 
 def calculate_complete_compound_difficulty(an: List[float], bn: List[int]) -> Tuple[float, float]:
