@@ -186,7 +186,7 @@ def calculate_compound_difficulty(an: List[float], bn: List[int], T: float) -> f
             variance = 0.0
     
         # 计算总难度
-        total_compound_difficulty = sum_of_difficulties + 1 * variance
+        total_compound_difficulty = sum_of_difficulties + 1 * math.sqrt(variance)
     else:
         total_compound_difficulty = 0.0
         
