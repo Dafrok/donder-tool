@@ -129,12 +129,36 @@ def calculate_compound_difficulty(an: List[float], bn: List[int], T: float) -> f
                 corr2 = 0.0
             
             b = corr1 * corr2
+
+            # 新增: 步骤8: 计算系数c
+            # 1. 获取当前元素的LR标记
+            current_lr_mark = lr_marks[idx_i]  # 通过原始索引获取LR标记
+
+            c = 1.0  # 默认值
+
+            # 当前元素的标记必须为"L"才进行详细计算
+            if current_lr_mark == 'L':
+                # 2. 计算阈值边界
+                lower_limit = 15/300 * 1000  # 约为 50.0
+                upper_limit = 15/220 * 1000  # 约为 68.18
+                value_to_check = an_extended[idx_i-1]  # 当前元素前一个位置的值
+                
+                # 3. 根据 value_to_check 与阈值的关系计算c
+                if value_to_check > upper_limit:
+                    c = 0.0
+                elif value_to_check < lower_limit:
+                    c = 1.0
+                else:
+                    # 线性插值
+                    c = 1.0 - (value_to_check - lower_limit) / (upper_limit - lower_limit)
+            # 如果标记是'R'，c保持为1.0
+
             
             # 计算当前元素的复合难度
-            element_difficulty = a * b
+            element_difficulty = a * b * c
             subarray_compound_difficulty += element_difficulty
         
-        # 步骤8: 乘以ln(子数组长度)
+        #  乘以ln(子数组长度)
       #  if subarray_compound_difficulty > 0:
       #      subarray_compound_difficulty *= math.log(subarray_len)
         
