@@ -162,11 +162,33 @@ function extractSongMeta(relativePath, fileName, preferredSongName = '', preferr
   };
 }
 
-function decodeBytesWithFallback(bytes, encodings) {
+function isLikelyTjaText(text) {
+  if (!text || typeof text !== 'string') return false;
+  const hasMeta = /^\s*(TITLE|SUBTITLE|BPM|COURSE|LEVEL|GENRE|WAVE)\s*:/im.test(text);
+  const hasStart = /^\s*#START\b/im.test(text);
+  return hasMeta && hasStart;
+}
+
+function isLikelyJsonText(text) {
+  if (!text || typeof text !== 'string') return false;
+  const trimmed = text.trim();
+  if (!(trimmed.startsWith('{') || trimmed.startsWith('['))) return false;
+  try {
+    JSON.parse(trimmed);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function decodeBytesWithFallback(bytes, encodings, validator) {
   for (const encoding of encodings) {
     try {
       const decoder = new TextDecoder(encoding, { fatal: true });
-      return decoder.decode(bytes);
+      const decoded = decoder.decode(bytes);
+      if (!validator || validator(decoded)) {
+        return decoded;
+      }
     } catch (_) {
       // try next encoding
     }
@@ -181,9 +203,21 @@ function readFileAsText(file) {
       try {
         const bytes = new Uint8Array(reader.result);
         const isTja = file.name.toLowerCase().endsWith('.tja');
-        const text = isTja
-          ? decodeBytesWithFallback(bytes, ['utf-8', 'shift_jis'])
-          : decodeBytesWithFallback(bytes, ['utf-8']);
+        const isJson = file.name.toLowerCase().endsWith('.json');
+        const sharedEncodings = [
+          'utf-8',
+          'utf-16le',
+          'utf-16be',
+          'shift_jis',
+          'euc-jp',
+          'iso-2022-jp',
+          'gb18030',
+          'gbk',
+          'big5'
+        ];
+        const validator = isTja ? isLikelyTjaText : isJson ? isLikelyJsonText : undefined;
+        const encodings = isTja || isJson ? sharedEncodings : ['utf-8'];
+        const text = decodeBytesWithFallback(bytes, encodings, validator);
         resolve(text);
       } catch (error) {
         reject(new Error(`读取文件失败: ${file.name}（${error.message}）`));
