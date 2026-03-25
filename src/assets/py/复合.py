@@ -137,7 +137,6 @@ def calculate_compound_difficulty(an: List[float], bn: List[int], T: float) -> f
 
             c = 1.0  # 默认值
 
-            # 当前元素的标记必须为"L"才进行详细计算
             # if current_lr_mark == 'L':
             
             # 2. 计算阈值边界
@@ -158,18 +157,9 @@ def calculate_compound_difficulty(an: List[float], bn: List[int], T: float) -> f
             # 计算当前元素的复合难度
             element_difficulty = a * b * c
             subarray_compound_difficulty += element_difficulty
-        
-        # if subarray_compound_difficulty > 0:
-            # subarray_compound_difficulty *= math.log(subarray_len)
-            # subarray_compound_difficulty *= subarray_len
-            # subarray_compound_difficulty *= subarray_compound_difficulty  #  放大长段的影响
-        
-        # total_compound_difficulty += subarray_compound_difficulty
 
         subarray_difficulties.append(subarray_compound_difficulty)
         current_index = subarray_indices[-1] + 1
-
-    # total_compound_difficulty = math.sqrt(total_compound_difficulty)
 
     if len(subarray_difficulties) > 0:
     # 计算所有子数组难度的总和
