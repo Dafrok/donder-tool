@@ -82,20 +82,9 @@ def calculate_rhythm_difficulty(arr, T):
         
             # 修改2: 根据N值使用不同的计算公式
             if N < 1/3:
-                # a_coeff1 = 2 * math.sqrt(0.25 - (0.5 * (1 - 3 * N)) ** 2)
                 a_coeff = 2 * math.sqrt(0.25 - (0.5 * (1 - 3 * N)) ** 2)
             else:
-                # a_coeff1 = 2 * math.sqrt(0.25 - (0.9 * (1 - 3 * N)) ** 2)
-                a_coeff = 2 * math.sqrt(0.25 - (0.9 * (1 - 3 * N)) ** 2)
-
-            # delta = larger - smaller
-            # a_coeff2 = 0
-
-            # if delta < 50:
-            #     delta = min(delta, 50 - delta)
-            #     a_coeff2 = delta / 25
-
-            # a_coeff = 1 - (1 - a_coeff1) * (1 - a_coeff2)
+                a_coeff = 2 * math.sqrt(0.25 - (0.94 * (1 - 3 * N)) ** 2)
             
             # 计算b系数（大间隔修正系数乘积）
             def get_interval_coeff(value):
