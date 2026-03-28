@@ -1,5 +1,5 @@
 /**
- * Web 版定数计算器主应用
+ * Web 版太鼓谱面难度分析主应用
  */
 
 import { calculateDifficulty, warmupPython } from './data-engine.js';
@@ -10,6 +10,9 @@ const exportBtn = document.getElementById('exportBtn');
 const uploadBtn = document.getElementById('uploadBtn');
 const uploadFolderInput = document.getElementById('uploadFolderInput');
 const searchInput = document.getElementById('searchInput');
+const controls = document.getElementById('controls');
+const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+const difficultyFilterSelect = document.getElementById('diffFilter');
 const resultsBody = document.getElementById('resultsBody');
 const tableWrapper = document.getElementById('tableWrapper');
 const totalSongsEl = document.getElementById('totalSongs');
@@ -686,6 +689,42 @@ function updateSortHeaders() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  const closeMobileMenu = () => {
+    if (!controls || !mobileMenuToggle) return;
+    controls.classList.remove('mobile-menu-open');
+    mobileMenuToggle.setAttribute('aria-expanded', 'false');
+  };
+
+  if (controls && mobileMenuToggle) {
+    mobileMenuToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      controls.classList.toggle('mobile-menu-open');
+      mobileMenuToggle.setAttribute(
+        'aria-expanded',
+        controls.classList.contains('mobile-menu-open') ? 'true' : 'false'
+      );
+    });
+
+    document.addEventListener('click', (e) => {
+      if (window.innerWidth >= 900) return;
+      if (!controls.contains(e.target)) {
+        closeMobileMenu();
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth >= 900) {
+        closeMobileMenu();
+      }
+    });
+
+    uploadBtn.addEventListener('click', closeMobileMenu);
+    exportBtn.addEventListener('click', closeMobileMenu);
+    if (difficultyFilterSelect) {
+      difficultyFilterSelect.addEventListener('change', closeMobileMenu);
+    }
+  }
+
   errorModalCloseBtn.addEventListener('click', hideErrorModal);
   errorModal.addEventListener('click', (e) => {
     if (e.target === errorModal) hideErrorModal();
@@ -715,7 +754,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // 难度筛选器
-  document.getElementById('diffFilter').addEventListener('change', (e) => {
+  difficultyFilterSelect.addEventListener('change', (e) => {
     diffFilter = e.target.value;
     renderRows();
   });

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>定数计算器</title>
+    <title>太鼓谱面难度分析</title>
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <script src="/coi-serviceworker.js"></script>
     <style>
@@ -41,6 +41,36 @@
             display: flex;
             gap: 15px;
             align-items: center;
+            position: relative;
+        }
+
+        .search-filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            overflow: hidden;
+            background: #ffffff;
+        }
+
+        .search-filter-group:focus-within {
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .action-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            width: 34px;
+            min-width: 34px;
+            padding: 0;
+            font-size: 1.1em;
+            line-height: 1;
         }
 
         .search-box {
@@ -51,16 +81,15 @@
             padding: 0 12px;
             padding-left: 36px;
             height: 34px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 4px;
+            border: 0;
+            border-radius: 0;
             font-size: 0.9em;
             width: 300px;
-            background: rgba(255, 255, 255, 0.9);
+            background: #ffffff;
         }
 
         .search-box input:focus {
             outline: none;
-            border-color: #ffffff;
             background: #ffffff;
         }
 
@@ -99,16 +128,23 @@
         .diff-filter select {
             padding: 0 10px;
             height: 34px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 4px;
-            background: rgba(255, 255, 255, 0.9);
-            color: #37474f;
+            border: 0;
+            border-left: 1px solid #d5dee4;
+            border-radius: 0;
+            background: #f3f6f8;
+            color: #455a64;
             font-size: 0.9em;
             cursor: pointer;
+            margin-left: 0;
         }
 
         .diff-filter select:focus {
             outline: none;
+            background: #e8eef2;
+        }
+
+        .diff-filter select option {
+            color: #37474f;
             background: #ffffff;
         }
 
@@ -367,11 +403,70 @@
             border-color: #b0bec5;
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 900px) {
             .header h1 {
                 display: none;
             }
+        }
 
+        @media (max-width: 900px) {
+            .header {
+                padding: 12px 16px;
+            }
+
+            .controls {
+                gap: 10px;
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .search-filter-group {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .search-box {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .search-box input {
+                width: 100%;
+            }
+
+            .mobile-menu-toggle {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .action-group {
+                display: none;
+            }
+
+            .controls.mobile-menu-open .action-group {
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                position: absolute;
+                left: 0;
+                top: calc(100% + 8px);
+                min-width: 170px;
+                padding: 10px;
+                gap: 8px;
+                border-radius: 8px;
+                background: #455a64;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+                z-index: 30;
+            }
+
+            .controls.mobile-menu-open .action-group button {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 640px) {
             .search-box input {
                 width: 160px;
             }
@@ -530,23 +625,30 @@
 </head>
 <body>
     <div class="header">
-        <h1>定数计算器</h1>
-        <div class="controls">
-            <div class="search-box">
-                <span class="search-icon">⌕</span>
-                <input type="text" id="searchInput" placeholder="搜索歌曲...">
-            </div>            <div class="diff-filter">
-                <select id="diffFilter">
-                    <option value="all">全部</option>
-                    <option value="easy">简单</option>
-                    <option value="normal">一般</option>
-                    <option value="hard">困难</option>
-                    <option value="oni">魔王</option>
-                    <option value="edit">魔王(里)</option>
-                    <option value="oni+edit" selected>魔王 &amp; 魔王(里)</option>
-                </select>
-            </div>            <button id="uploadBtn">上传</button>
-            <button id="exportBtn">导出</button>
+        <h1>太鼓谱面难度分析</h1>
+        <div class="controls" id="controls">
+            <button class="mobile-menu-toggle" id="mobileMenuToggle" type="button" aria-label="打开操作菜单" aria-expanded="false">☰</button>
+            <div class="action-group" id="actionGroup">
+                <button id="uploadBtn">上传</button>
+                <button id="exportBtn">导出</button>
+            </div>
+            <div class="search-filter-group">
+                <div class="search-box">
+                    <span class="search-icon">⌕</span>
+                    <input type="text" id="searchInput" placeholder="搜索歌曲...">
+                </div>
+                <div class="diff-filter">
+                    <select id="diffFilter">
+                        <option value="all">全部</option>
+                        <option value="easy">简单</option>
+                        <option value="normal">一般</option>
+                        <option value="hard">困难</option>
+                        <option value="oni">魔王</option>
+                        <option value="edit">魔王(里)</option>
+                        <option value="oni+edit" selected>魔王 &amp; 魔王(里)</option>
+                    </select>
+                </div>
+            </div>
         </div>
     </div>
 
