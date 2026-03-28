@@ -244,6 +244,10 @@
             min-height: 100%;
         }
 
+        .table-wrapper:not(.has-data) thead {
+            display: none;
+        }
+
         .table-wrapper:not(.has-data) #resultsBody {
             height: 100%;
         }
@@ -464,6 +468,14 @@
             .controls.mobile-menu-open .action-group button {
                 width: 100%;
             }
+
+            .table-wrapper.has-data {
+                overflow: auto;
+            }
+
+            .table-wrapper.has-data table {
+                min-width: 900px;
+            }
         }
 
         @media (max-width: 640px) {
@@ -622,7 +634,7 @@
             color: #90a4ae;
         }
     </style>
-  <script type="module" crossorigin src="/taiko-rating-app/assets/index-vO5GxzPF.js"></script>
+  <script type="module" crossorigin src="/taiko-rating-app/assets/index-Bq2IGeAz.js"></script>
 </head>
 <body>
     <div class="header">
