@@ -7,6 +7,7 @@
 import py体力Url from './assets/py/体力.py?url'
 import py复合Url from './assets/py/复合.py?url'
 import py节奏Url from './assets/py/节奏.py?url'
+import py手速Url from './assets/py/手速.py?url'
 import py爆发Url from './assets/py/爆发.py?url'
 import pyCalculatorUrl from './assets/py/calculator.py?url'
 
@@ -73,6 +74,7 @@ export async function loadPythonModules() {
         fetch(py体力Url).then(r => r.text()).then(code => ['体力.py', code]),
         fetch(py复合Url).then(r => r.text()).then(code => ['复合.py', code]),
         fetch(py节奏Url).then(r => r.text()).then(code => ['节奏.py', code]),
+        fetch(py手速Url).then(r => r.text()).then(code => ['手速.py', code]),
         fetch(py爆发Url).then(r => r.text()).then(code => ['爆发.py', code]),
         fetch(pyCalculatorUrl).then(r => r.text()).then(code => ['calculator.py', code])
       ]);

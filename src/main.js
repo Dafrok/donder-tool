@@ -542,7 +542,7 @@ function displayResults(results) {
 
   if (!results || results.length === 0) {
     tableWrapper.classList.remove('has-data');
-    resultsBody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:#90a4ae;">无计算结果，请重新拖入数据文件夹</td></tr>';
+    resultsBody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:40px;color:#90a4ae;">无计算结果，请重新拖入数据文件夹</td></tr>';
     return;
   }
 
@@ -652,6 +652,7 @@ function renderRows(rows = currentRows) {
       <td>${formatNumber(row.ratings.rhythm)}</td>
       <td>${formatNumber(row.ratings.rhythmRatio)}</td>
       <td>${formatNumber(row.ratings.speed)}</td>
+      <td>${formatNumber(row.ratings.burst)}</td>
     `;
     resultsBody.appendChild(tr);
   }
@@ -664,7 +665,8 @@ const SORTABLE_COLS = {
   6: 'complexRatio',
   7: 'rhythm',
   8: 'rhythmRatio',
-  9: 'speed'
+  9: 'speed',
+  10: 'burst'
 };
 
 function updateSortHeaders() {
@@ -789,7 +791,7 @@ function exportResults() {
     return;
   }
 
-  const rows = ['分类,歌曲,难度,分支,体力,复合,复合难占比,节奏,节奏难占比,爆发'];
+  const rows = ['分类,歌曲,难度,分支,体力,复合,复合难占比,节奏,节奏难占比,手速,爆发'];
 
   for (const song of allResults) {
     for (const chart of song.charts) {
@@ -799,7 +801,7 @@ function exportResults() {
       rows.push(
         `"${song.category}","${song.songName}","${difficultyLabel}","${branchLabel}",${
           chart.ratings.stamina
-        },${chart.ratings.complex},${chart.ratings.complexRatio},${chart.ratings.rhythm},${chart.ratings.rhythmRatio},${chart.ratings.speed}`
+        },${chart.ratings.complex},${chart.ratings.complexRatio},${chart.ratings.rhythm},${chart.ratings.rhythmRatio},${chart.ratings.speed},${chart.ratings.burst}`
       );
     }
   }
