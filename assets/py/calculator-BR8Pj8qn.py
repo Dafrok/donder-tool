@@ -1,6 +1,6 @@
 """
 计算器模块 - Python 版本
-导入 体力、复合、节奏、爆发 4个模块进行定数计算
+导入 体力、复合、节奏、手速、爆发 5个模块进行定数计算
 """
 
 from 体力 import calculate_result
@@ -11,7 +11,8 @@ except ImportError:
     # 兼容旧版入口名
     from 复合 import compute_final_composite_difficulty as compute_composite_difficulty
 from 节奏 import compute_final_rhythm_difficulty
-from 爆发 import compute_weighted_average
+from 手速 import compute_weighted_average as compute_speed_weighted_average
+from 爆发 import compute_weighted_average as compute_burst_weighted_average
 
 
 def normalize_difficulty_name(difficulty_name):
@@ -85,9 +86,9 @@ def calculate_difficulty_ratings(unbranched, note_types=None):
     intervals = extract_intervals(unbranched)
     
     if len(intervals) == 0:
-        return {'stamina': 0, 'complex': 0, 'complexRatio': 0, 'rhythm': 0, 'rhythmRatio': 0, 'speed': 0}
+        return {'stamina': 0, 'complex': 0, 'complexRatio': 0, 'rhythm': 0, 'rhythmRatio': 0, 'speed': 0, 'burst': 0}
     
-    results = {'stamina': 0, 'complex': 0, 'complexRatio': 0, 'rhythm': 0, 'rhythmRatio': 0, 'speed': 0}
+    results = {'stamina': 0, 'complex': 0, 'complexRatio': 0, 'rhythm': 0, 'rhythmRatio': 0, 'speed': 0, 'burst': 0}
     
     # 计算体力定数
     try:
@@ -121,9 +122,15 @@ def calculate_difficulty_ratings(unbranched, note_types=None):
     except Exception:
         pass
     
-    # 计算爆发定数
+    # 计算手速定数（手速算法）
     try:
-        results['speed'] = compute_weighted_average(intervals)
+        results['speed'] = compute_speed_weighted_average(intervals)
+    except Exception:
+        pass
+
+    # 计算爆发定数（爆发算法）
+    try:
+        results['burst'] = compute_burst_weighted_average(intervals)
     except Exception:
         pass
     
