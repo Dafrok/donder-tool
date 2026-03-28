@@ -784,7 +784,7 @@ function exportResults() {
     return;
   }
 
-  const rows = ['分类,歌曲,难度,分支,体力,复合,复合难占比,节奏,节奏难占比,高速'];
+  const rows = ['分类,歌曲,难度,分支,体力,复合,复合难占比,节奏,节奏难占比,爆发'];
 
   for (const song of allResults) {
     for (const chart of song.charts) {
