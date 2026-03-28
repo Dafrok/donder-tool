@@ -753,6 +753,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  tableWrapper.addEventListener('click', (e) => {
+    if (!e.target.closest('#dropPlaceholderRow')) return;
+    uploadFolderInput.click();
+  });
+
   // 表头点击排序
   document.querySelector('table thead tr').addEventListener('click', (e) => {
     const th = e.target.closest('th');

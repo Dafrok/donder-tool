@@ -166,6 +166,10 @@
             outline: none;
         }
 
+        .table-wrapper:not(.has-data) {
+            cursor: pointer;
+        }
+
         .drop-placeholder {
             display: flex;
             flex-direction: column;
@@ -175,7 +179,7 @@
             padding: 80px 40px;
             color: #90a4ae;
             user-select: none;
-            pointer-events: none;
+            cursor: inherit;
         }
 
         .drop-placeholder .drop-icon {
@@ -191,11 +195,37 @@
 
         .drop-placeholder .drop-sub {
             font-size: 0.85em;
+            text-align: center;
+            line-height: 1.6;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
+        }
+
+        .table-wrapper:not(.has-data) table {
+            min-height: 100%;
+        }
+
+        .table-wrapper:not(.has-data) #resultsBody {
+            height: 100%;
+        }
+
+        .table-wrapper:not(.has-data) #dropPlaceholderRow {
+            height: 100%;
+        }
+
+        .table-wrapper:not(.has-data) #dropPlaceholderRow .drop-placeholder-cell {
+            height: 100%;
+            padding: 0;
+            border-bottom: none;
+        }
+
+        .table-wrapper:not(.has-data) #dropPlaceholderRow .drop-placeholder {
+            height: 100%;
+            min-height: 320px;
+            padding: 40px;
         }
 
         thead {
@@ -557,11 +587,11 @@
                 </thead>
                 <tbody id="resultsBody">
                     <tr id="dropPlaceholderRow">
-                        <td colspan="10">
+                        <td colspan="10" class="drop-placeholder-cell">
                             <div class="drop-placeholder">
                                 <div class="drop-icon">📂</div>
-                                <div class="drop-title">将数据文件夹拖入此处</div>
-                                <div class="drop-sub">支持包含谱面 JSON 的任意目录结构</div>
+                                <div class="drop-title">点击或拖拽上传 TJA 文件或文件夹</div>
+                                <div class="drop-sub">支持 .TJA 谱面文件或包含 .TJA 文件的任意目录结构</div>
                             </div>
                         </td>
                     </tr>
