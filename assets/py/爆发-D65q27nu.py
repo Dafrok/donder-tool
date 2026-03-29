@@ -10,7 +10,17 @@ def compute_weighted_average(a):
         raise ValueError("数组长度必须至少为2")
     
     # 1. 计算 b_i = a_i + a_{i+1}
-    b = [a[i] + a[i+1] for i in range(n)]
+    # b = [a[i] + a[i+1] for i in range(n)]
+
+    b = []
+    for i in range(n):
+        x_i = 2 * a[i]  # 第一个数
+        y_i = a[i] + a[i+1]  # 第二个数
+        weight_x = 2.0
+        weight_y = 1.0
+        # 计算加权调和平均值
+        b_i = (weight_x + weight_y) / (weight_x / x_i + weight_y / y_i)
+        b.append(b_i)
     
     # 2. 计算 c_i = 1000 / b_i
     c = [1000.0 / b_i for b_i in b]
