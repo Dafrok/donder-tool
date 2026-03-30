@@ -45,6 +45,23 @@ def find_best_two_segments(arr, segments):
 
 def calculate_result(arr):
     """主计算函数"""
+
+    # === 新增逻辑：判断数组总和是否小于40000 ===
+    total_sum_of_array = sum(arr)
+    n = len(arr)
+    
+    if total_sum_of_array < 40000:
+        # 如果整个数组的总和小于40000
+        # 则 A = 元素总和 / 元素数量
+        A = total_sum_of_array / n if n > 0 else 0
+        B = 0
+        # 步骤5：计算加权平方平均值
+        result = (0.9 * A**2 + 0.1 * B**2) ** 0.5
+        return A, B, result
+    # === 新增逻辑结束 ===
+    
+    # === 原有逻辑（当数组总和 >= 40000 时执行）===
+    
     # 步骤1：查找所有可能的体力段
     segments = find_segments(arr)
     
