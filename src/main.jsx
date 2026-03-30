@@ -35,6 +35,7 @@ import {
 import {
   ArrowDownloadRegular,
   ArrowUploadRegular,
+  FilterRegular,
   InfoRegular,
   SearchRegular
 } from '@fluentui/react-icons';
@@ -56,6 +57,16 @@ const BRANCH_LABELS = {
   expert: '玄人',
   master: '达人'
 };
+
+const DIFFICULTY_FILTER_OPTIONS = [
+  { value: 'all', label: '全部' },
+  { value: 'easy', label: '简单' },
+  { value: 'normal', label: '一般' },
+  { value: 'hard', label: '困难' },
+  { value: 'oni', label: '魔王' },
+  { value: 'edit', label: '魔王(里)' },
+  { value: 'oni+edit', label: '魔王 & 魔王(里)' }
+];
 
 const SORTABLE_COLS = {
   level: 'level',
@@ -91,6 +102,17 @@ const taikoKaTheme = {
   ...webLightTheme,
   ...createLightTheme(TAIKO_KA_PALETTE)
 };
+
+function FilterButton(props) {
+  return (
+    <Button
+      {...props}
+      appearance="transparent"
+      icon={<FilterRegular />}
+      size="small"
+    />
+  );
+}
 
 function formatNumber(num) {
   if (num === 0 || !num) return '-';
@@ -422,6 +444,7 @@ function App() {
   const fileInputRef = useRef(null);
   const headerRef = useRef(null);
   const footerRef = useRef(null);
+  const filterPanelRef = useRef(null);
   const [allSongsData, setAllSongsData] = useState([]);
   const [allResults, setAllResults] = useState([]);
   const [currentRows, setCurrentRows] = useState([]);
@@ -432,6 +455,7 @@ function App() {
   const [loadingText, setLoadingText] = useState('加载中...');
   const [dragOver, setDragOver] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [hideTopBarTitle, setHideTopBarTitle] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [aboutDialogOpen, setAboutDialogOpen] = useState(false);
@@ -521,6 +545,30 @@ function App() {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  useEffect(() => {
+    if (!filterPanelOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (!filterPanelRef.current?.contains(event.target)) {
+        setFilterPanelOpen(false);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setFilterPanelOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [filterPanelOpen]);
 
   const footerInfo = useMemo(() => {
     const date = new Date(__BUILD_TIME__);
@@ -915,24 +963,43 @@ function App() {
             </div>
             <div className="actions-row">
               <Input
-                className="search-input search-input-with-filter"
+                className="search-input"
                 contentBefore={<SearchRegular />}
                 contentAfter={(
-                  <span className="search-filter-addon" role="group" aria-label="搜索与难度过滤">
-                    <select
-                      className="search-filter-native"
-                      value={diffFilter}
-                      onChange={(e) => setDiffFilter(e.target.value)}
-                      aria-label="按难度过滤"
-                    >
-                      <option value="all">全部</option>
-                      <option value="easy">简单</option>
-                      <option value="normal">一般</option>
-                      <option value="hard">困难</option>
-                      <option value="oni">魔王</option>
-                      <option value="edit">魔王(里)</option>
-                      <option value="oni+edit">魔王 & 魔王(里)</option>
-                    </select>
+                  <span className="search-filter-addon" ref={filterPanelRef}>
+                    <FilterButton
+                      className="search-filter-trigger"
+                      aria-label={filterPanelOpen ? '收起过滤器' : '展开过滤器'}
+                      aria-haspopup="menu"
+                      aria-expanded={filterPanelOpen}
+                      onClick={() => setFilterPanelOpen((prev) => !prev)}
+                    />
+                    {filterPanelOpen ? (
+                      <div className="filter-dropdown" role="menu" aria-label="难度过滤器">
+                        <div className="filter-label">难度过滤</div>
+                        <div className="filter-options" role="radiogroup" aria-label="按难度过滤">
+                          {DIFFICULTY_FILTER_OPTIONS.map((option) => {
+                            const selected = diffFilter === option.value;
+                            return (
+                              <Button
+                                key={option.value}
+                                className={`filter-option-btn${selected ? ' is-selected' : ''}`}
+                                appearance="subtle"
+                                size="small"
+                                role="radio"
+                                aria-checked={selected}
+                                onClick={() => {
+                                  setDiffFilter(option.value);
+                                  setFilterPanelOpen(false);
+                                }}
+                              >
+                                {option.label}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
                   </span>
                 )}
                 placeholder="搜索歌曲..."
