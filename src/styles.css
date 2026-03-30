@@ -614,7 +614,7 @@ body {
 
 .chart-detail-stats-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -642,6 +642,10 @@ body {
   border-radius: 10px;
   border: 1px solid #ebf1f7;
   background: linear-gradient(180deg, #ffffff 0%, #f8fcff 100%);
+}
+
+.chart-detail-stat-block-wide {
+  grid-column: span 2;
 }
 
 .chart-detail-basic-info {
@@ -679,6 +683,20 @@ body {
   max-height: none;
   gap: 8px;
   overflow: visible;
+}
+
+.chart-gap-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: -4px 0 10px;
+}
+
+.chart-gap-legend .gap-value {
+  font-size: 12px;
+  line-height: 1.2;
+  padding: 4px 9px;
 }
 
 .chart-gap-list .gap-bar {
@@ -1086,7 +1104,7 @@ body {
   }
 
   .chart-detail-stats-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 6px;
   }
 
@@ -1145,7 +1163,7 @@ body {
   }
 
   .chart-detail-stats-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 5px;
   }
 

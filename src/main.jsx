@@ -408,11 +408,46 @@ function normalizeFileList(fileList) {
   }));
 }
 
-function getGapColorClass(gap) {
+function buildGapSpeedProfile(minGap, avgGap, medianGap, modeGap, secondModeGap) {
+  const anchors = [minGap, avgGap, medianGap, Number(modeGap), Number(secondModeGap)]
+    .filter((value) => Number.isFinite(value));
+
+  if (anchors.length < 3) {
+    return {
+      fastMax: 80,
+      mediumMax: 150,
+      normalMax: 300
+    };
+  }
+
+  anchors.sort((a, b) => a - b);
+  while (anchors.length < 5) {
+    anchors.push(anchors[anchors.length - 1]);
+  }
+
+  const low = anchors[0];
+  const lower = anchors[1];
+  const mid = anchors[2];
+  const upper = anchors[3];
+  const high = anchors[4];
+
+  const mid1 = (low + lower) / 2;
+  const mid2 = (lower + mid) / 2;
+  const upperBlend = (upper + high) / 2;
+  const mid3 = (mid + upperBlend) / 2;
+
+  const fastMax = Number(mid1.toFixed(1));
+  const mediumMax = Number(Math.max(mid2, fastMax + 0.1).toFixed(1));
+  const normalMax = Number(Math.max(mid3, mediumMax + 0.1).toFixed(1));
+
+  return { fastMax, mediumMax, normalMax };
+}
+
+function getGapColorClass(gap, profile) {
   if (gap === null) return 'gap-null';
-  if (gap <= 80) return 'gap-fast';
-  if (gap <= 150) return 'gap-medium';
-  if (gap <= 300) return 'gap-normal';
+  if (gap <= profile.fastMax) return 'gap-fast';
+  if (gap <= profile.mediumMax) return 'gap-medium';
+  if (gap <= profile.normalMax) return 'gap-normal';
   return 'gap-slow';
 }
 
@@ -424,35 +459,81 @@ function renderGapContent(gapData) {
   let totalGap = 0;
   let gapCount = 0;
   let minGap = Infinity;
+  const gapFrequency = new Map();
+  const gapValues = [];
 
   for (let i = 0; i < gapData.length; i += 1) {
     const bar = gapData[i];
-    if (!bar || bar.length === 0) continue;
+    if (!Array.isArray(bar)) continue;
     totalNotes += bar.length;
 
     bars.push({
       label: `${i + 1}`,
       values: bar.map((gap) => {
         if (gap === null) {
-          return { text: '-', className: 'gap-null' };
+          return { text: '-', rawGap: null };
         }
+        const gapText = gap.toFixed(1);
         totalGap += gap;
         gapCount += 1;
         if (gap < minGap) minGap = gap;
+        gapValues.push(gap);
+        gapFrequency.set(gapText, (gapFrequency.get(gapText) || 0) + 1);
         return {
-          text: gap.toFixed(1),
-          className: getGapColorClass(gap)
+          text: gapText,
+          rawGap: gap
         };
       })
     });
   }
 
+  const rankedGaps = Array.from(gapFrequency.entries())
+    .sort((a, b) => {
+      if (b[1] !== a[1]) return b[1] - a[1];
+      return Number(a[0]) - Number(b[0]);
+    });
+
+  const modeGap = rankedGaps[0]?.[0] || '-';
+  const modeGapCount = rankedGaps[0]?.[1] || 0;
+  const secondModeGap = rankedGaps[1]?.[0] || '-';
+  const secondModeGapCount = rankedGaps[1]?.[1] || 0;
+  const avgGapValue = gapCount > 0 ? totalGap / gapCount : null;
+  let medianGapValue = null;
+  if (gapValues.length) {
+    const sortedValues = [...gapValues].sort((a, b) => a - b);
+    const mid = Math.floor(sortedValues.length / 2);
+    medianGapValue = sortedValues.length % 2 === 0
+      ? (sortedValues[mid - 1] + sortedValues[mid]) / 2
+      : sortedValues[mid];
+  }
+  const gapSpeedProfile = buildGapSpeedProfile(
+    minGap === Infinity ? null : minGap,
+    avgGapValue,
+    medianGapValue,
+    modeGap,
+    secondModeGap
+  );
+
+  const coloredBars = bars.map((bar) => ({
+    ...bar,
+    values: bar.values.map((value) => ({
+      text: value.text,
+      className: getGapColorClass(value.rawGap, gapSpeedProfile)
+    }))
+  }));
+
   return {
-    bars,
+    bars: coloredBars,
     stats: {
       totalNotes,
-      avgGap: gapCount > 0 ? (totalGap / gapCount).toFixed(1) : '-',
-      minGap: minGap === Infinity ? '-' : minGap.toFixed(1)
+      avgGap: avgGapValue === null ? '-' : avgGapValue.toFixed(1),
+      medianGap: medianGapValue === null ? '-' : medianGapValue.toFixed(1),
+      minGap: minGap === Infinity ? '-' : minGap.toFixed(1),
+      modeGap,
+      modeGapCount,
+      secondModeGap,
+      secondModeGapCount,
+      gapSpeedProfile
     }
   };
 }
