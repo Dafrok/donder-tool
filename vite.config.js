@@ -20,7 +20,7 @@ const buildTime = new Date().toISOString();
 export default defineConfig({
   root: 'src',
   publicDir: '../public',
-  base: process.env.GITHUB_ACTIONS ? '/taiko-rating-app/' : '/',
+  base: process.env.GITHUB_ACTIONS ? '/donder-tool/' : '/',
   plugins: [react()],
   resolve: {
     alias: {}

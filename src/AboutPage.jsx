@@ -32,7 +32,7 @@ function AboutPage({ footerInfo, isOffline, onBack }) {
           <div className="about-meta-line">
             版本:
             {' '}
-            <Link href={`https://github.com/Dafrok/taiko-rating-app/commit/${footerInfo.hash}`} target="_blank" rel="noreferrer">
+            <Link href={`https://github.com/Dafrok/donder-tool/commit/${footerInfo.hash}`} target="_blank" rel="noreferrer">
               {footerInfo.hash}
             </Link>
           </div>
