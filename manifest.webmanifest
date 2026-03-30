@@ -1,6 +1,6 @@
 {
-  "name": "Donder Tools",
-  "short_name": "DonderTools",
+  "name": "Donder Assistant",
+  "short_name": "DonderAssistant",
   "description": "Taiko chart difficulty analyzer for TJA files.",
   "id": "./",
   "start_url": "./",
