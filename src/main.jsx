@@ -55,6 +55,7 @@ import { calculateDifficulty, warmupPython } from './data-engine.js';
 import { analyzeTjaToJson } from './tjs-analyzer.ts';
 import AboutPage from './AboutPage.jsx';
 import ChartDetailPage from './ChartDetailPage.jsx';
+import ConstantsTablePage from './ConstantsTablePage.jsx';
 import SingleSongPricePage from './SingleSongPricePage.jsx';
 import TargetScorePage from './TargetScorePage.jsx';
 import './styles.css';
@@ -706,6 +707,7 @@ function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
   const [hideTopBarTitle, setHideTopBarTitle] = useState(false);
+  const [constantsVisibleCount, setConstantsVisibleCount] = useState(0);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [errorDialog, setErrorDialog] = useState({ open: false, title: '数据导入失败', message: '' });
   const [hasFavoriteCache, setHasFavoriteCache] = useState(() => {
@@ -735,6 +737,7 @@ function App() {
   }, [diffFilter]);
 
   const isAboutRoute = location.pathname === '/about';
+  const isConstantsRoute = location.pathname === '/constants';
   const isSinglePriceRoute = location.pathname === '/single-price';
   const isTargetScoreRoute = location.pathname === '/target-score';
   const isRootRoute = location.pathname === '/';
@@ -742,7 +745,7 @@ function App() {
   const chartDetailRouteMatch = matchPath('/chart/:chartId', location.pathname);
   const chartRouteMatch = chartPreviewRouteMatch || chartDetailRouteMatch;
   const isChartRoute = Boolean(chartRouteMatch);
-  const isKnownRoute = isRootRoute || isAboutRoute || isSinglePriceRoute || isTargetScoreRoute || isChartRoute;
+  const isKnownRoute = isRootRoute || isConstantsRoute || isAboutRoute || isSinglePriceRoute || isTargetScoreRoute || isChartRoute;
   const routeChartId = useMemo(() => {
     if (!chartRouteMatch?.params?.chartId) return '';
     try {
@@ -849,56 +852,94 @@ function App() {
 
   useEffect(() => {
     const rootStyle = document.documentElement.style;
+    let rafId = 0;
+    let lastHeaderHeight = -1;
+    let lastFooterHeight = -1;
 
-    const updateLayoutVars = () => {
+    const applyLayoutVars = () => {
       const headerHeight = headerRef.current?.getBoundingClientRect().height || 0;
-      const footerHeight = isRootRoute
+      const footerHeight = (isRootRoute || isConstantsRoute)
         ? (footerRef.current?.getBoundingClientRect().height || 0)
         : 0;
-      rootStyle.setProperty('--header-height', `${Math.ceil(headerHeight)}px`);
-      rootStyle.setProperty('--footer-height', `${Math.ceil(footerHeight)}px`);
+
+      const nextHeaderHeight = Math.ceil(headerHeight);
+      const nextFooterHeight = Math.ceil(footerHeight);
+
+      if (nextHeaderHeight !== lastHeaderHeight) {
+        rootStyle.setProperty('--header-height', `${nextHeaderHeight}px`);
+        lastHeaderHeight = nextHeaderHeight;
+      }
+      if (nextFooterHeight !== lastFooterHeight) {
+        rootStyle.setProperty('--footer-height', `${nextFooterHeight}px`);
+        lastFooterHeight = nextFooterHeight;
+      }
     };
 
-    updateLayoutVars();
+    const scheduleLayoutVarsUpdate = () => {
+      if (rafId) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = 0;
+        applyLayoutVars();
+      });
+    };
+
+    applyLayoutVars();
 
     let resizeObserver;
     if ('ResizeObserver' in window) {
-      resizeObserver = new ResizeObserver(updateLayoutVars);
+      resizeObserver = new ResizeObserver(scheduleLayoutVarsUpdate);
       if (headerRef.current) resizeObserver.observe(headerRef.current);
-      if (isRootRoute && footerRef.current) resizeObserver.observe(footerRef.current);
+      if ((isRootRoute || isConstantsRoute) && footerRef.current) resizeObserver.observe(footerRef.current);
     }
 
-    window.addEventListener('resize', updateLayoutVars);
+    window.addEventListener('resize', scheduleLayoutVarsUpdate);
     return () => {
-      window.removeEventListener('resize', updateLayoutVars);
+      window.removeEventListener('resize', scheduleLayoutVarsUpdate);
+      if (rafId) {
+        window.cancelAnimationFrame(rafId);
+      }
       if (resizeObserver) resizeObserver.disconnect();
     };
-  }, [isRootRoute]);
+  }, [isRootRoute, isConstantsRoute]);
 
   useEffect(() => {
-    const updateTopBarMode = () => {
-      if (!isRootRoute) {
-        setHideTopBarTitle(false);
+    let rafId = 0;
+
+    const applyTopBarMode = () => {
+      if (!isRootRoute && !isConstantsRoute) {
+        setHideTopBarTitle((prev) => (prev ? false : prev));
         return;
       }
       const topBarWidth = headerRef.current?.getBoundingClientRect().width || window.innerWidth;
-      setHideTopBarTitle(topBarWidth < 640);
+      const nextCompact = topBarWidth < 640;
+      setHideTopBarTitle((prev) => (prev === nextCompact ? prev : nextCompact));
     };
 
-    updateTopBarMode();
+    const scheduleTopBarModeUpdate = () => {
+      if (rafId) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = 0;
+        applyTopBarMode();
+      });
+    };
+
+    applyTopBarMode();
 
     let resizeObserver;
     if ('ResizeObserver' in window && headerRef.current) {
-      resizeObserver = new ResizeObserver(updateTopBarMode);
+      resizeObserver = new ResizeObserver(scheduleTopBarModeUpdate);
       resizeObserver.observe(headerRef.current);
     }
 
-    window.addEventListener('resize', updateTopBarMode);
+    window.addEventListener('resize', scheduleTopBarModeUpdate);
     return () => {
-      window.removeEventListener('resize', updateTopBarMode);
+      window.removeEventListener('resize', scheduleTopBarModeUpdate);
+      if (rafId) {
+        window.cancelAnimationFrame(rafId);
+      }
       if (resizeObserver) resizeObserver.disconnect();
     };
-  }, [isRootRoute]);
+  }, [isRootRoute, isConstantsRoute]);
 
   useEffect(() => {
     let active = true;
@@ -1210,7 +1251,8 @@ function App() {
       params.delete('q');
     }
     const search = params.toString();
-    navigate({ pathname: '/', search: search ? `?${search}` : '' }, { replace: Boolean(options.replace) });
+    const targetPath = isConstantsRoute ? '/constants' : '/';
+    navigate({ pathname: targetPath, search: search ? `?${search}` : '' }, { replace: Boolean(options.replace) });
   }
 
   function closeChartDetailPage() {
@@ -1550,7 +1592,9 @@ function App() {
   }
 
   function handleNavSelect(_, data) {
-    if (data.value === 'analysis') {
+    if (data.value === 'constants') {
+      navigate('/constants');
+    } else if (data.value === 'analysis') {
       navigate('/');
     } else if (data.value === 'about') {
       navigate('/about');
@@ -1575,12 +1619,12 @@ function App() {
               />
               {!hideTopBarTitle ? <Title3 className="top-bar-title">Donder Assistant</Title3> : null}
             </div>
-            {isRootRoute ? (
+            {(isRootRoute || isConstantsRoute) ? (
               <div className="actions-row">
                 <Input
                   className="search-input"
                   contentBefore={<SearchRegular />}
-                  contentAfter={(
+                  contentAfter={isConstantsRoute ? undefined : (
                     <span className="search-filter-addon" ref={filterPanelRef}>
                       <FilterButton
                         className="search-filter-trigger"
@@ -1617,7 +1661,7 @@ function App() {
                       ) : null}
                     </span>
                   )}
-                  placeholder="搜索歌曲..."
+                  placeholder={isConstantsRoute ? '搜索定数表...' : '搜索歌曲...'}
                   value={searchInput}
                   onChange={(_, data) => setSearchInput(data.value)}
                   onKeyDown={(event) => {
@@ -1650,9 +1694,10 @@ function App() {
           >
             <Nav
               onNavItemSelect={handleNavSelect}
-              selectedValue={isAboutRoute ? 'about' : isTargetScoreRoute ? 'targetScore' : isSinglePriceRoute ? 'singlePrice' : 'analysis'}
+              selectedValue={isAboutRoute ? 'about' : isTargetScoreRoute ? 'targetScore' : isSinglePriceRoute ? 'singlePrice' : isConstantsRoute ? 'constants' : 'analysis'}
             >
               <NavSectionHeader>数据分析</NavSectionHeader>
+              <NavItem value="constants" icon={<DataHistogramRegular />}>定数表</NavItem>
               <NavItem value="analysis" icon={<DataHistogramRegular />}>谱面分析</NavItem>
 
               <NavDivider />
@@ -1781,6 +1826,13 @@ function App() {
           </div>
 
           {isAboutRoute ? <AboutPage footerInfo={footerInfo} isOffline={isOffline} onBack={() => navigate('/')} /> : null}
+          <div className={`constants-route-panel${isConstantsRoute ? '' : ' route-panel-hidden'}`} aria-hidden={!isConstantsRoute}>
+            <ConstantsTablePage
+              searchKeyword={searchKeyword}
+              onCountChange={setConstantsVisibleCount}
+              isActive={isConstantsRoute}
+            />
+          </div>
           {isSinglePriceRoute ? <SingleSongPricePage onBack={() => navigate('/')} /> : null}
           {isTargetScoreRoute ? <TargetScorePage onBack={() => navigate('/')} /> : null}
           {isChartRoute ? (
@@ -1794,19 +1846,29 @@ function App() {
           ) : null}
         </main>
 
-        {isRootRoute ? (
+        {(isRootRoute || isConstantsRoute) ? (
           <footer className="app-footer" ref={footerRef}>
             <div className="status-strip">
-              <div className="list-info-bar" role="status" aria-label="谱面列表统计信息">
-                <Body1 className="list-stat">
-                  <span className="list-stat-label">歌曲：</span>
-                  <span className="list-stat-value">{totalSongs}</span>
-                </Body1>
-                <Body1 className="list-stat">
-                  <span className="list-stat-label">谱面：</span>
-                  <span className="list-stat-value">{totalCharts}</span>
-                </Body1>
-              </div>
+              {isRootRoute ? (
+                <div className="list-info-bar" role="status" aria-label="谱面列表统计信息">
+                  <Body1 className="list-stat">
+                    <span className="list-stat-label">歌曲：</span>
+                    <span className="list-stat-value">{totalSongs}</span>
+                  </Body1>
+                  <Body1 className="list-stat">
+                    <span className="list-stat-label">谱面：</span>
+                    <span className="list-stat-value">{totalCharts}</span>
+                  </Body1>
+                </div>
+              ) : null}
+              {isConstantsRoute ? (
+                <div className="list-info-bar" role="status" aria-label="定数表统计信息">
+                  <Body1 className="list-stat">
+                    <span className="list-stat-label">条目：</span>
+                    <span className="list-stat-value">{constantsVisibleCount}</span>
+                  </Body1>
+                </div>
+              ) : null}
             </div>
           </footer>
         ) : null}
