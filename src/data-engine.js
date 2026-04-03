@@ -36,7 +36,7 @@ export async function initPyodide() {
 
       const { loadPyodide } = await import('https://cdnjs.cloudflare.com/ajax/libs/pyodide/0.24.1/pyodide.mjs');
       await yieldToMain();
-      pyodide = await loadPyodide();
+      pyodide = await loadPyodide({ indexURL: '/pyodide/' });
 
       console.log('✅ Pyodide 初始化完成');
       pyodideReady = true;
