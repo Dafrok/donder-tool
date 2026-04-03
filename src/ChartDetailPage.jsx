@@ -265,7 +265,7 @@ function ChartDetailPage({ detail, chartId = '', onBack, isFavorite = false, onT
 
     overlayRenderDebounceTimerRef.current = setTimeout(() => {
       setOverlayRenderScale(overlayScaleRef.current);
-    }, 140);
+    }, 250);
 
     return () => {
       if (overlayRenderDebounceTimerRef.current) {
@@ -286,7 +286,7 @@ function ChartDetailPage({ detail, chartId = '', onBack, isFavorite = false, onT
 
       resizeDebounceTimerRef.current = setTimeout(() => {
         setPreviewResizeTick((value) => value + 1);
-      }, 120);
+      }, 300);
     };
 
     const updateByElementSize = (element) => {
@@ -408,7 +408,7 @@ function ChartDetailPage({ detail, chartId = '', onBack, isFavorite = false, onT
     };
   }, [isPreviewRoute]);
 
-  const clampScale = (value) => Math.min(4, Math.max(1, value));
+  const clampScale = React.useCallback((value) => Math.min(4, Math.max(1, value)), []);
 
   const queueOverlayTransformCommit = () => {
     if (overlayTransformRafRef.current) return;
@@ -531,15 +531,15 @@ function ChartDetailPage({ detail, chartId = '', onBack, isFavorite = false, onT
     };
   };
 
-  function openPreviewRoute() {
+  const openPreviewRoute = React.useCallback(() => {
     if (!chartId) return;
     navigate({
       pathname: `/chart/${encodeURIComponent(chartId)}/preview`,
       search: location.search
     });
-  }
+  }, [chartId, navigate, location.search]);
 
-  function closePreviewRoute() {
+  const closePreviewRoute = React.useCallback(() => {
     if (!chartId) {
       navigate(-1);
       return;
@@ -548,9 +548,9 @@ function ChartDetailPage({ detail, chartId = '', onBack, isFavorite = false, onT
       pathname: `/chart/${encodeURIComponent(chartId)}`,
       search: location.search
     });
-  }
+  }, [chartId, navigate, location.search]);
 
-  function savePreviewImage() {
+  const savePreviewImage = React.useCallback(() => {
     const canvas = overlayCanvasRef.current;
     if (!canvas) return;
 
@@ -576,7 +576,7 @@ function ChartDetailPage({ detail, chartId = '', onBack, isFavorite = false, onT
     }
 
     triggerDownload(canvas.toDataURL('image/png'));
-  }
+  }, [detail?.songName]);
 
   function toggleOriginalAndFitScale(centerPoint) {
     const nativeScale = getNativeCanvasScale();
@@ -600,7 +600,7 @@ function ChartDetailPage({ detail, chartId = '', onBack, isFavorite = false, onT
     commitOverlayScaleAndOffset(targetScale, clampedOffset);
   }
 
-  function handleOverlayWheel(event) {
+  const handleOverlayWheel = React.useCallback((event) => {
     event.preventDefault();
     setIsDirectManipulating(true);
     if (wheelInteractionTimerRef.current) {
@@ -640,9 +640,9 @@ function ChartDetailPage({ detail, chartId = '', onBack, isFavorite = false, onT
       setIsDirectManipulating(false);
       wheelInteractionTimerRef.current = null;
     }, 90);
-  }
+  }, [clampScale]);
 
-  function handleOverlayMouseDown(event) {
+  const handleOverlayMouseDown = React.useCallback((event) => {
     event.preventDefault();
     setIsDirectManipulating(true);
     dragStateRef.current = {
@@ -652,9 +652,9 @@ function ChartDetailPage({ detail, chartId = '', onBack, isFavorite = false, onT
       offsetX: overlayOffsetRef.current.x,
       offsetY: overlayOffsetRef.current.y
     };
-  }
+  }, []);
 
-  function handleOverlayMouseMove(event) {
+  const handleOverlayMouseMove = React.useCallback((event) => {
     if (!dragStateRef.current.active) return;
     const dx = event.clientX - dragStateRef.current.startX;
     const dy = event.clientY - dragStateRef.current.startY;
@@ -662,14 +662,14 @@ function ChartDetailPage({ detail, chartId = '', onBack, isFavorite = false, onT
       x: dragStateRef.current.offsetX + dx,
       y: dragStateRef.current.offsetY + dy
     }));
-  }
+  }, []);
 
-  function handleOverlayMouseUp() {
+  const handleOverlayMouseUp = React.useCallback(() => {
     dragStateRef.current.active = false;
     setIsDirectManipulating(false);
-  }
+  }, []);
 
-  function handleOverlayTouchStart(event) {
+  const handleOverlayTouchStart = React.useCallback((event) => {
     setIsDirectManipulating(true);
     if (event.touches.length === 2) {
       const [touchA, touchB] = event.touches;
@@ -695,9 +695,9 @@ function ChartDetailPage({ detail, chartId = '', onBack, isFavorite = false, onT
         startPoint: { x: touch.clientX, y: touch.clientY }
       };
     }
-  }
+  }, []);
 
-  function handleOverlayTouchMove(event) {
+  const handleOverlayTouchMove = React.useCallback((event) => {
     if (!touchStateRef.current.mode || touchStateRef.current.mode === 'none') return;
 
     if (touchStateRef.current.mode === 'pan' && event.touches.length === 1) {
@@ -724,9 +724,9 @@ function ChartDetailPage({ detail, chartId = '', onBack, isFavorite = false, onT
         y: center.y - contentY * nextScale
       }, nextScale));
     }
-  }
+  }, [clampScale]);
 
-  function handleOverlayTouchEnd(event) {
+  const handleOverlayTouchEnd = React.useCallback((event) => {
     const prevMode = touchStateRef.current.mode;
 
     if (event.touches.length === 0) {
@@ -777,7 +777,7 @@ function ChartDetailPage({ detail, chartId = '', onBack, isFavorite = false, onT
         startPoint: { x: touch.clientX, y: touch.clientY }
       };
     }
-  }
+  }, []);
 
   return (
     <div className="results-panel chart-detail-panel">
@@ -839,10 +839,10 @@ function ChartDetailPage({ detail, chartId = '', onBack, isFavorite = false, onT
                       </>
                     )}
                     {statItems.map((item) => (
-                        <div
-                          className={`chart-detail-stat-block ${item.label.includes('频间隔') ? 'chart-detail-stat-block-wide' : ''}`}
-                          key={item.label}
-                        >
+                      <div
+                        className={`chart-detail-stat-block ${item.label.includes('频间隔') ? 'chart-detail-stat-block-wide' : ''}`}
+                        key={item.label}
+                      >
                         <span className="chart-detail-stat-label">{item.label}</span>
                         <span className="chart-detail-stat-value">{item.value}</span>
                       </div>
@@ -858,7 +858,7 @@ function ChartDetailPage({ detail, chartId = '', onBack, isFavorite = false, onT
                 {ratingItems.length ? (
                   <div className="chart-detail-ratings-grid">
                     {ratingItems.map((item) => (
-                      <div className="chart-detail-stat-block chart-detail-rating-block" key={item.label}>
+                      <div className="chart-detail-rating-block chart-detail-stat-block" key={item.label}>
                         <span className="chart-detail-stat-label">{item.label}</span>
                         <span className="chart-detail-stat-value">
                           {typeof item.value === 'string' ? item.value : formatRatingValue(item.value)}
@@ -900,14 +900,14 @@ function ChartDetailPage({ detail, chartId = '', onBack, isFavorite = false, onT
               <section className="chart-detail-card chart-detail-gaps-card" aria-label="音符间隔明细">
                 <h3 className="chart-detail-card-title">音符间隔明细</h3>
                 <div className="chart-gap-legend" aria-label="间隔颜色说明">
-                  <span className="gap-value gap-fast">快速 ≤{fastMax}ms</span>
-                  <span className="gap-value gap-medium">中速 {fastMax}-{mediumMax}ms</span>
-                  <span className="gap-value gap-normal">常规 {mediumMax}-{normalMax}ms</span>
-                  <span className="gap-value gap-slow">慢速 {'>'}{normalMax}ms</span>
-                  <span className="gap-value gap-null">空值 -</span>
+                  <span className="gap-fast gap-value">快速 ≤{fastMax}ms</span>
+                  <span className="gap-medium gap-value">中速 {fastMax}-{mediumMax}ms</span>
+                  <span className="gap-normal gap-value">常规 {mediumMax}-{normalMax}ms</span>
+                  <span className="gap-slow gap-value">慢速 {'>'}{normalMax}ms</span>
+                  <span className="gap-null gap-value">空值 -</span>
                 </div>
                 {detail.bars.length ? (
-                  <div className="gap-list chart-gap-list">
+                  <div className="chart-gap-list gap-list">
                     {detail.bars.map((bar) => (
                       <div className="gap-bar" key={bar.label}>
                         <span className="gap-bar-label">{bar.label}</span>
@@ -919,7 +919,7 @@ function ChartDetailPage({ detail, chartId = '', onBack, isFavorite = false, onT
                               </span>
                             ))
                           ) : (
-                            <span className="gap-value gap-null" key={`${bar.label}-placeholder`}>
+                            <span className="gap-null gap-value" key={`${bar.label}-placeholder`}>
                               -
                             </span>
                           )}

@@ -719,6 +719,9 @@ function App() {
     if (!Array.isArray(ids)) return new Set();
     return new Set(ids.filter((id) => typeof id === 'string' && id));
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const ROWS_PER_PAGE = 50;
+
   const routeSearchKeyword = useMemo(() => {
     const params = new URLSearchParams(location.search);
     return params.get('q') ?? '';
@@ -736,6 +739,11 @@ function App() {
       // Ignore storage access errors.
     }
   }, [diffFilter]);
+
+  // 当过滤条件改变时，重置回第一页
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [diffFilter, searchKeyword, sortState]);
 
   const isAboutRoute = location.pathname === '/about';
   const isConstantsRoute = location.pathname === '/constants';
@@ -1192,6 +1200,24 @@ function App() {
     });
   }, [currentRows, diffFilter, searchKeyword, sortState]);
 
+  // 分页计算
+  const paginationInfo = useMemo(() => {
+    const total = filteredRows.length;
+    const totalPages = Math.ceil(total / ROWS_PER_PAGE);
+    const validPage = Math.max(1, Math.min(currentPage, totalPages || 1));
+    const startIndex = (validPage - 1) * ROWS_PER_PAGE;
+    const endIndex = startIndex + ROWS_PER_PAGE;
+    const paginatedRows = filteredRows.slice(startIndex, endIndex);
+    return {
+      paginatedRows,
+      currentPage: validPage,
+      totalPages,
+      totalRows: total,
+      startIndex,
+      endIndex
+    };
+  }, [filteredRows, currentPage, ROWS_PER_PAGE]);
+
   const selectedChartRow = useMemo(() => {
     if (!routeChartId) return null;
     return currentRows.find((row) => row.id === routeChartId) || null;
@@ -1602,20 +1628,29 @@ function App() {
     return sortState.asc ? '▲' : '▼';
   }
 
-  function handleNavSelect(_, data) {
-    if (data.value === 'constants') {
-      navigate('/constants');
-    } else if (data.value === 'analysis') {
-      navigate('/');
-    } else if (data.value === 'about') {
-      navigate('/about');
-    } else if (data.value === 'singlePrice') {
-      navigate('/single-price');
-    } else if (data.value === 'targetScore') {
-      navigate('/target-score');
+  const navPathMap = useMemo(() => ({
+    constants: '/constants',
+    analysis: '/',
+    about: '/about',
+    singlePrice: '/single-price',
+    targetScore: '/target-score'
+  }), []);
+
+  const handleNavSelect = useCallback((_, data) => {
+    const path = navPathMap[data.value];
+    if (path) {
+      navigate(path);
     }
     setMenuOpen(false);
-  }
+  }, [navigate, navPathMap]);
+
+  const selectedNavValue = useMemo(() => {
+    if (isAboutRoute) return 'about';
+    if (isTargetScoreRoute) return 'targetScore';
+    if (isSinglePriceRoute) return 'singlePrice';
+    if (isConstantsRoute || isConstantsDetailRoute) return 'constants';
+    return 'analysis';
+  }, [isAboutRoute, isTargetScoreRoute, isSinglePriceRoute, isConstantsRoute, isConstantsDetailRoute]);
 
   const openConstantsDetail = useCallback((detail) => {
     if (!detail?.id) return;
@@ -1710,7 +1745,7 @@ function App() {
           onOpenChange={(_, data) => setMenuOpen(data.open)}
         >
           <NavDrawerHeader
-          className="app-nav-drawer-header"
+            className="app-nav-drawer-header"
           >
             <Hamburger
               aria-label="收起操作抽屉"
@@ -1721,7 +1756,7 @@ function App() {
           >
             <Nav
               onNavItemSelect={handleNavSelect}
-              selectedValue={isAboutRoute ? 'about' : isTargetScoreRoute ? 'targetScore' : isSinglePriceRoute ? 'singlePrice' : (isConstantsRoute || isConstantsDetailRoute) ? 'constants' : 'analysis'}
+              selectedValue={selectedNavValue}
             >
               <NavSectionHeader>数据分析</NavSectionHeader>
               <NavItem value="constants" icon={<DataHistogramRegular />}>定数表</NavItem>
@@ -1797,7 +1832,7 @@ function App() {
               <div className="table-wrapper">
                 <DataGrid
                   className="table-grid"
-                  items={filteredRows}
+                  items={paginationInfo.paginatedRows}
                   columns={gridColumns}
                   columnSizingOptions={columnSizingOptions}
                   getRowId={(item) => item.id}
@@ -1848,6 +1883,30 @@ function App() {
                     )}
                   </DataGridBody>
                 </DataGrid>
+                <div className="pagination-controls" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', padding: '16px', borderTop: '1px solid #f0f0f0' }}>
+                  <Button
+                    appearance="subtle"
+                    size="small"
+                    disabled={paginationInfo.currentPage <= 1}
+                    onClick={() => setCurrentPage(Math.max(1, paginationInfo.currentPage - 1))}
+                  >
+                    上一页
+                  </Button>
+                  <Body1 style={{ margin: '0 8px', minWidth: '120px', textAlign: 'center' }}>
+                    第 {paginationInfo.currentPage} / {paginationInfo.totalPages} 页
+                    <span style={{ fontSize: '12px', color: '#767676', marginLeft: '8px' }}>
+                      (共 {paginationInfo.totalRows} 条)
+                    </span>
+                  </Body1>
+                  <Button
+                    appearance="subtle"
+                    size="small"
+                    disabled={paginationInfo.currentPage >= paginationInfo.totalPages}
+                    onClick={() => setCurrentPage(Math.min(paginationInfo.totalPages, paginationInfo.currentPage + 1))}
+                  >
+                    下一页
+                  </Button>
+                </div>
               </div>
             )}
           </div>
@@ -1891,7 +1950,12 @@ function App() {
                   </Body1>
                   <Body1 className="list-stat">
                     <span className="list-stat-label">谱面：</span>
-                    <span className="list-stat-value">{totalCharts}</span>
+                    <span className="list-stat-value">{paginationInfo.totalRows}</span>
+                    {paginationInfo.totalRows < totalCharts ? (
+                      <span style={{ fontSize: '12px', color: '#767676', marginLeft: '8px' }}>
+                        (过滤后 / 全部 {totalCharts})
+                      </span>
+                    ) : null}
                   </Body1>
                 </div>
               ) : null}

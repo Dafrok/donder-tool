@@ -6,6 +6,7 @@ import {
   BreadcrumbDivider,
   BreadcrumbItem,
   Body1,
+  Button,
   DataGrid,
   DataGridBody,
   DataGridCell,
@@ -118,6 +119,8 @@ function ConstantsTablePage({ searchKeyword = '', onCountChange, onOpenDetail, i
   const [rows, setRows] = useState([]);
   const [loadingState, setLoadingState] = useState({ loading: false, error: '' });
   const [hasActivated, setHasActivated] = useState(isActive);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ROWS_PER_PAGE = 50;
   const deferredKeyword = useDeferredValue(appliedSearchKeyword);
   const pendingRaf1Ref = useRef(0);
   const pendingRaf2Ref = useRef(0);
@@ -177,6 +180,11 @@ function ConstantsTablePage({ searchKeyword = '', onCountChange, onOpenDetail, i
       setAppliedSearchKeyword(searchKeyword);
     }, { immediate: false, mode: 'raf' });
   }, [searchKeyword, appliedSearchKeyword, scheduleListUpdate]);
+
+  // 当搜索或排序改变时，重置回第一页
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [appliedSearchKeyword, sortState]);
 
   useEffect(() => {
     if (!isPending && isListBusy) {
@@ -267,13 +275,31 @@ function ConstantsTablePage({ searchKeyword = '', onCountChange, onOpenDetail, i
     return result;
   }, [deferredKeyword, rows, sortState]);
 
+  // 分页计算
+  const paginationInfo = useMemo(() => {
+    const total = filteredRows.length;
+    const totalPages = Math.ceil(total / ROWS_PER_PAGE);
+    const validPage = Math.max(1, Math.min(currentPage, totalPages || 1));
+    const startIndex = (validPage - 1) * ROWS_PER_PAGE;
+    const endIndex = startIndex + ROWS_PER_PAGE;
+    const paginatedRows = filteredRows.slice(startIndex, endIndex);
+    return {
+      paginatedRows,
+      currentPage: validPage,
+      totalPages,
+      totalRows: total,
+      startIndex,
+      endIndex
+    };
+  }, [filteredRows, currentPage, ROWS_PER_PAGE]);
+
   const isSearchKeywordPending = searchKeyword !== appliedSearchKeyword;
 
   useEffect(() => {
     if (isActive && typeof onCountChange === 'function') {
-      onCountChange(filteredRows.length);
+      onCountChange(paginationInfo.totalRows);
     }
-  }, [filteredRows.length, onCountChange, isActive]);
+  }, [paginationInfo.totalRows, onCountChange, isActive]);
 
   const columnSizingOptions = useMemo(() => ({
     col0: {
@@ -368,14 +394,40 @@ function ConstantsTablePage({ searchKeyword = '', onCountChange, onOpenDetail, i
           </div>
         ) : null}
         {!loadingState.loading && !loadingState.error ? (
-          <ConstantsDataGrid
-            filteredRows={filteredRows}
-            gridColumns={gridColumns}
-            columnSizingOptions={columnSizingOptions}
-            handleSort={handleSort}
-            renderSortIcon={renderSortIcon}
-            openDetail={openDetail}
-          />
+          <>
+            <ConstantsDataGrid
+              filteredRows={paginationInfo.paginatedRows}
+              gridColumns={gridColumns}
+              columnSizingOptions={columnSizingOptions}
+              handleSort={handleSort}
+              renderSortIcon={renderSortIcon}
+              openDetail={openDetail}
+            />
+            <div className="pagination-controls" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', padding: '16px', borderTop: '1px solid #f0f0f0' }}>
+              <Button
+                appearance="subtle"
+                size="small"
+                disabled={paginationInfo.currentPage <= 1}
+                onClick={() => setCurrentPage(Math.max(1, paginationInfo.currentPage - 1))}
+              >
+                上一页
+              </Button>
+              <Body1 style={{ margin: '0 8px', minWidth: '120px', textAlign: 'center' }}>
+                第 {paginationInfo.currentPage} / {paginationInfo.totalPages} 页
+                <span style={{ fontSize: '12px', color: '#767676', marginLeft: '8px' }}>
+                  (共 {paginationInfo.totalRows} 条)
+                </span>
+              </Body1>
+              <Button
+                appearance="subtle"
+                size="small"
+                disabled={paginationInfo.currentPage >= paginationInfo.totalPages}
+                onClick={() => setCurrentPage(Math.min(paginationInfo.totalPages, paginationInfo.currentPage + 1))}
+              >
+                下一页
+              </Button>
+            </div>
+          </>
         ) : null}
         {!loadingState.loading && !loadingState.error && (isPending || isListBusy || isSearchKeywordPending) ? (
           <div className="constants-list-busy-overlay" aria-live="polite" aria-label="列表更新中">
