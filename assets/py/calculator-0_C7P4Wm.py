@@ -81,14 +81,26 @@ def get_note_types_for_chart(song_data, difficulty_name, branch_type):
     return []
 
 
+def count_total_notes(unbranched):
+    """统计谱面总 note 数"""
+    total = 0
+    if not unbranched or not isinstance(unbranched, list):
+        return total
+    for segment in unbranched:
+        if segment and isinstance(segment, list):
+            total += len(segment)
+    return total
+
+
 def calculate_difficulty_ratings(unbranched, note_types=None):
     """计算单个难度的所有定数"""
     intervals = extract_intervals(unbranched)
+    total_notes = count_total_notes(unbranched)
     
     if len(intervals) == 0:
-        return {'stamina': 0, 'complex': 0, 'complexRatio': 0, 'rhythm': 0, 'rhythmRatio': 0, 'speed': 0, 'burst': 0}
+        return {'stamina': 0, 'complex': 0, 'complexRatio': 0, 'rhythm': 0, 'rhythmRatio': 0, 'speed': 0, 'burst': 0, 'totalNotes': total_notes}
     
-    results = {'stamina': 0, 'complex': 0, 'complexRatio': 0, 'rhythm': 0, 'rhythmRatio': 0, 'speed': 0, 'burst': 0}
+    results = {'stamina': 0, 'complex': 0, 'complexRatio': 0, 'rhythm': 0, 'rhythmRatio': 0, 'speed': 0, 'burst': 0, 'totalNotes': total_notes}
     
     # 计算体力定数
     try:
