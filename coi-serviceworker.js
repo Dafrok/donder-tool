@@ -5,7 +5,7 @@
 */
 
 (() => {
-  const SW_VERSION = '2026-03-30-2';
+  const SW_VERSION = '2026-04-04-1';
   const APP_SHELL_CACHE = `app-shell-${SW_VERSION}`;
   const RUNTIME_CACHE = `runtime-${SW_VERSION}`;
   const PRECACHE_PATHS = ['./', './index.html', './offline.html', './manifest.webmanifest', './favicon.ico'];
