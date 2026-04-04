@@ -1001,11 +1001,11 @@ function PracticeModePage() {
   const getTouchArcGeometry = useCallback((zoneWidth, zoneHeight) => {
     const width = Math.max(1, zoneWidth);
     const height = Math.max(1, zoneHeight);
-    const arcRadius = width * 0.92;
-    const arcY = height * 0.3;
+    // Keep the drum centered in the lower touch zone and leave clear whitespace around it.
+    const arcRadius = Math.max(24, Math.min(width * 0.32, height * 0.52));
     return {
       centerX: width / 2,
-      centerY: arcY + arcRadius,
+      centerY: height / 2,
       radius: arcRadius
     };
   }, []);
@@ -2004,31 +2004,21 @@ function PracticeModePage() {
         guideCtx.scale(pulseScaleX, pulseScaleY);
         guideCtx.translate(-arc.centerX, -arc.centerY);
 
-        const leftX = 0;
-        const rightX = guideWidth;
-        const leftDx = leftX - arc.centerX;
-        const rightDx = rightX - arc.centerX;
-        const leftArcY = arc.centerY - Math.sqrt(Math.max(0, arc.radius * arc.radius - leftDx * leftDx));
-        const rightArcY = arc.centerY - Math.sqrt(Math.max(0, arc.radius * arc.radius - rightDx * rightDx));
-        const startAngle = Math.atan2(leftArcY - arc.centerY, leftX - arc.centerX);
-        const endAngle = Math.atan2(rightArcY - arc.centerY, rightX - arc.centerX);
+        const drumRadius = arc.radius;
+        const topY = arc.centerY - drumRadius;
 
         const drumFacePath = new Path2D();
-        drumFacePath.moveTo(leftX, guideHeight);
-        drumFacePath.lineTo(leftX, leftArcY);
-        drumFacePath.arc(arc.centerX, arc.centerY, arc.radius, startAngle, endAngle, false);
-        drumFacePath.lineTo(rightX, guideHeight);
-        drumFacePath.closePath();
+        drumFacePath.arc(arc.centerX, arc.centerY, drumRadius, 0, Math.PI * 2);
 
-        const fillGradient = guideCtx.createLinearGradient(0, leftArcY, 0, guideHeight);
+        const fillGradient = guideCtx.createLinearGradient(0, topY, 0, arc.centerY + drumRadius);
         fillGradient.addColorStop(0, 'rgba(255, 255, 255, 0.92)');
         fillGradient.addColorStop(1, 'rgba(248, 248, 248, 0.96)');
         guideCtx.fillStyle = fillGradient;
         guideCtx.fill(drumFacePath);
 
         if (donPulseStrength > 0.001) {
-          const donCenterY = leftArcY + (guideHeight - leftArcY) * 0.56;
-          const donOuterRadius = Math.max(guideWidth * 0.78, (guideHeight - leftArcY) * 1.2);
+          const donCenterY = arc.centerY + drumRadius * 0.2;
+          const donOuterRadius = drumRadius * 1.12;
           const donGradient = guideCtx.createRadialGradient(
             arc.centerX,
             donCenterY,
@@ -2040,32 +2030,35 @@ function PracticeModePage() {
           donGradient.addColorStop(0, `rgba(255, 124, 124, ${(0.52 * donPulseStrength).toFixed(3)})`);
           donGradient.addColorStop(0.55, `rgba(255, 148, 148, ${(0.30 * donPulseStrength).toFixed(3)})`);
           donGradient.addColorStop(1, 'rgba(255, 148, 148, 0)');
+          guideCtx.save();
+          guideCtx.clip(drumFacePath);
           guideCtx.fillStyle = donGradient;
-          guideCtx.fill(drumFacePath);
+          guideCtx.fillRect(arc.centerX - drumRadius, arc.centerY - drumRadius, drumRadius * 2, drumRadius * 2);
+          guideCtx.restore();
         }
 
         // Drum-head hoop: outer shadow ring + thick black rim + inner highlight.
         guideCtx.lineWidth = 3;
         guideCtx.strokeStyle = 'rgba(0, 0, 0, 0.48)';
         guideCtx.beginPath();
-        guideCtx.arc(arc.centerX, arc.centerY, arc.radius + 2.4, startAngle, endAngle, false);
+        guideCtx.arc(arc.centerX, arc.centerY, drumRadius + 2.4, 0, Math.PI * 2);
         guideCtx.stroke();
 
         guideCtx.lineWidth = 9;
         guideCtx.strokeStyle = 'rgba(8, 8, 8, 0.96)';
         guideCtx.beginPath();
-        guideCtx.arc(arc.centerX, arc.centerY, arc.radius, startAngle, endAngle, false);
+        guideCtx.arc(arc.centerX, arc.centerY, drumRadius, 0, Math.PI * 2);
         guideCtx.stroke();
 
         guideCtx.lineWidth = 3;
         guideCtx.strokeStyle = 'rgba(248, 248, 248, 0.86)';
         guideCtx.beginPath();
-        guideCtx.arc(arc.centerX, arc.centerY, arc.radius - 2.0, startAngle, endAngle, false);
+        guideCtx.arc(arc.centerX, arc.centerY, drumRadius - 2.0, 0, Math.PI * 2);
         guideCtx.stroke();
 
         if (kaPulseStrength > 0.001) {
-          const kaCenterY = leftArcY + (guideHeight - leftArcY) * 0.62;
-          const kaOverlayRadius = Math.max(guideWidth * 1.05, (guideHeight - leftArcY) * 1.6);
+          const kaCenterY = arc.centerY + drumRadius * 0.25;
+          const kaOverlayRadius = drumRadius * 1.5;
           const kaOverlayGradient = guideCtx.createRadialGradient(
             arc.centerX,
             kaCenterY,
@@ -2077,30 +2070,32 @@ function PracticeModePage() {
           kaOverlayGradient.addColorStop(0, `rgba(118, 196, 255, ${(0.24 * kaPulseStrength).toFixed(3)})`);
           kaOverlayGradient.addColorStop(0.52, `rgba(138, 206, 255, ${(0.14 * kaPulseStrength).toFixed(3)})`);
           kaOverlayGradient.addColorStop(1, 'rgba(138, 206, 255, 0)');
+          guideCtx.save();
+          guideCtx.clip(drumFacePath);
           guideCtx.fillStyle = kaOverlayGradient;
-          guideCtx.fillRect(0, 0, guideWidth, guideHeight);
+          guideCtx.fillRect(arc.centerX - drumRadius, arc.centerY - drumRadius, drumRadius * 2, drumRadius * 2);
+          guideCtx.restore();
 
           guideCtx.lineCap = 'round';
           guideCtx.lineWidth = 12;
           guideCtx.strokeStyle = `rgba(118, 196, 255, ${(0.62 * kaPulseStrength).toFixed(3)})`;
           guideCtx.beginPath();
-          guideCtx.arc(arc.centerX, arc.centerY, arc.radius + 10, startAngle, endAngle, false);
+          guideCtx.arc(arc.centerX, arc.centerY, drumRadius + 10, 0, Math.PI * 2);
           guideCtx.stroke();
 
           guideCtx.lineWidth = 6;
           guideCtx.strokeStyle = `rgba(198, 232, 255, ${(0.72 * kaPulseStrength).toFixed(3)})`;
           guideCtx.beginPath();
-          guideCtx.arc(arc.centerX, arc.centerY, arc.radius + 15, startAngle, endAngle, false);
+          guideCtx.arc(arc.centerX, arc.centerY, drumRadius + 15, 0, Math.PI * 2);
           guideCtx.stroke();
         }
 
-        // Rivet-like hoop decorations spaced along the arc.
-        const rivetCount = 15;
-        for (let i = 1; i < rivetCount - 1; i += 1) {
-          const t = i / (rivetCount - 1);
-          const angle = startAngle + (endAngle - startAngle) * t;
-          const rx = arc.centerX + Math.cos(angle) * arc.radius;
-          const ry = arc.centerY + Math.sin(angle) * arc.radius;
+        // Rivet-like hoop decorations spaced along the full rim.
+        const rivetCount = 11;
+        for (let i = 0; i < rivetCount; i += 1) {
+          const angle = (-Math.PI / 2) + (Math.PI * 2 * i) / rivetCount;
+          const rx = arc.centerX + Math.cos(angle) * drumRadius;
+          const ry = arc.centerY + Math.sin(angle) * drumRadius;
           const rivetRadius = 3.2;
 
           guideCtx.fillStyle = 'rgba(12, 12, 12, 0.96)';
