@@ -746,12 +746,13 @@ function App() {
   const isConstantsDetailRoute = Boolean(constantsDetailRouteMatch);
   const isSinglePriceRoute = location.pathname === '/single-price';
   const isTargetScoreRoute = location.pathname === '/target-score';
+  const isAnalysisRoute = location.pathname === '/analysis';
   const isRootRoute = location.pathname === '/';
   const chartPreviewRouteMatch = matchPath('/chart/:chartId/preview', location.pathname);
   const chartDetailRouteMatch = matchPath('/chart/:chartId', location.pathname);
   const chartRouteMatch = chartPreviewRouteMatch || chartDetailRouteMatch;
   const isChartRoute = Boolean(chartRouteMatch);
-  const isKnownRoute = isRootRoute || isConstantsRoute || isConstantsDetailRoute || isAboutRoute || isSinglePriceRoute || isTargetScoreRoute || isChartRoute;
+  const isKnownRoute = isRootRoute || isAnalysisRoute || isConstantsRoute || isConstantsDetailRoute || isAboutRoute || isSinglePriceRoute || isTargetScoreRoute || isChartRoute;
   const routeChartId = useMemo(() => {
     if (!chartRouteMatch?.params?.chartId) return '';
     try {
@@ -865,6 +866,12 @@ function App() {
   }
 
   useEffect(() => {
+    if (isRootRoute) {
+      navigate('/constants', { replace: true });
+    }
+  }, [isRootRoute, navigate]);
+
+  useEffect(() => {
     const rootStyle = document.documentElement.style;
     let rafId = 0;
     let lastHeaderHeight = -1;
@@ -872,7 +879,7 @@ function App() {
 
     const applyLayoutVars = () => {
       const headerHeight = headerRef.current?.getBoundingClientRect().height || 0;
-      const footerHeight = (isRootRoute || isConstantsRoute)
+      const footerHeight = (isAnalysisRoute || isConstantsRoute)
         ? (footerRef.current?.getBoundingClientRect().height || 0)
         : 0;
 
@@ -903,7 +910,7 @@ function App() {
     if ('ResizeObserver' in window) {
       resizeObserver = new ResizeObserver(scheduleLayoutVarsUpdate);
       if (headerRef.current) resizeObserver.observe(headerRef.current);
-      if ((isRootRoute || isConstantsRoute) && footerRef.current) resizeObserver.observe(footerRef.current);
+      if ((isAnalysisRoute || isConstantsRoute) && footerRef.current) resizeObserver.observe(footerRef.current);
     }
 
     window.addEventListener('resize', scheduleLayoutVarsUpdate);
@@ -914,13 +921,13 @@ function App() {
       }
       if (resizeObserver) resizeObserver.disconnect();
     };
-  }, [isRootRoute, isConstantsRoute]);
+  }, [isAnalysisRoute, isConstantsRoute]);
 
   useEffect(() => {
     let rafId = 0;
 
     const applyTopBarMode = () => {
-      if (!isRootRoute && !isConstantsRoute) {
+      if (!isAnalysisRoute && !isConstantsRoute) {
         setHideTopBarTitle((prev) => (prev ? false : prev));
         return;
       }
@@ -953,7 +960,7 @@ function App() {
       }
       if (resizeObserver) resizeObserver.disconnect();
     };
-  }, [isRootRoute, isConstantsRoute]);
+  }, [isAnalysisRoute, isConstantsRoute]);
 
   useEffect(() => {
     let active = true;
@@ -1035,7 +1042,7 @@ function App() {
 
   useEffect(() => {
     if (!isKnownRoute) {
-      navigate('/', { replace: true });
+      navigate('/constants', { replace: true });
     }
   }, [isKnownRoute, navigate]);
 
@@ -1211,7 +1218,7 @@ function App() {
 
   useEffect(() => {
     if (isChartRoute && !selectedChartDetail) {
-      navigate({ pathname: '/', search: location.search });
+      navigate({ pathname: '/analysis', search: location.search });
     }
   }, [isChartRoute, selectedChartDetail, navigate, location.search]);
 
@@ -1244,13 +1251,13 @@ function App() {
       params.delete('q');
     }
     const search = params.toString();
-    const targetPath = isConstantsRoute ? '/constants' : '/';
+    const targetPath = isConstantsRoute ? '/constants' : '/analysis';
     navigate({ pathname: targetPath, search: search ? `?${search}` : '' }, { replace: Boolean(options.replace) });
   }
 
   function closeChartDetailPage() {
-    if (location.pathname !== '/') {
-      navigate({ pathname: '/', search: location.search });
+    if (location.pathname !== '/analysis') {
+      navigate({ pathname: '/analysis', search: location.search });
     }
   }
 
@@ -1586,7 +1593,7 @@ function App() {
 
   const navPathMap = useMemo(() => ({
     constants: '/constants',
-    analysis: '/',
+    analysis: '/analysis',
     about: '/about',
     singlePrice: '/single-price',
     targetScore: '/target-score'
@@ -1631,7 +1638,7 @@ function App() {
               />
               {!hideTopBarTitle ? <Title3 className="top-bar-title">Donder Assistant</Title3> : null}
             </div>
-            {(isRootRoute || isConstantsRoute) ? (
+            {(isAnalysisRoute || isConstantsRoute) ? (
               <div className="actions-row">
                 <Input
                   key={isConstantsRoute ? `constants-${routeSearchKeyword}` : 'analysis-search'}
@@ -1731,7 +1738,7 @@ function App() {
 
         <main className="content-area">
           <div
-            className={`results-panel${dragOver ? ' drag-over' : ''}${isRootRoute ? '' : ' route-panel-hidden'}`}
+            className={`results-panel${dragOver ? ' drag-over' : ''}${isAnalysisRoute ? '' : ' route-panel-hidden'}`}
             onDragEnter={(e) => {
               e.preventDefault();
               setDragOver(true);
@@ -1747,7 +1754,7 @@ function App() {
               }
             }}
             onDrop={onDrop}
-            aria-hidden={!isRootRoute}
+            aria-hidden={!isAnalysisRoute}
           >
             <header className="list-caption" aria-label="谱面列表说明与操作">
               <Breadcrumb className="list-breadcrumb" aria-label="面包屑">
@@ -1847,7 +1854,7 @@ function App() {
             )}
           </div>
 
-          {isAboutRoute ? <AboutPage footerInfo={footerInfo} isOffline={isOffline} onBack={() => navigate('/')} /> : null}
+          {isAboutRoute ? <AboutPage footerInfo={footerInfo} isOffline={isOffline} onBack={() => navigate('/constants')} /> : null}
           <div className={`constants-route-panel${isConstantsRoute ? '' : ' route-panel-hidden'}`} aria-hidden={!isConstantsRoute}>
             <ConstantsTablePage
               searchKeyword={searchKeyword}
@@ -1865,8 +1872,8 @@ function App() {
               onBack={() => navigate({ pathname: '/constants', search: location.search })}
             />
           ) : null}
-          {isSinglePriceRoute ? <SingleSongPricePage onBack={() => navigate('/')} /> : null}
-          {isTargetScoreRoute ? <TargetScorePage onBack={() => navigate('/')} /> : null}
+          {isSinglePriceRoute ? <SingleSongPricePage onBack={() => navigate('/constants')} /> : null}
+          {isTargetScoreRoute ? <TargetScorePage onBack={() => navigate('/constants')} /> : null}
           {isChartRoute ? (
             <ChartDetailPage
               detail={selectedChartDetail}
@@ -1878,10 +1885,10 @@ function App() {
           ) : null}
         </main>
 
-        {(isRootRoute || isConstantsRoute) ? (
+        {(isAnalysisRoute || isConstantsRoute) ? (
           <footer className="app-footer" ref={footerRef}>
             <div className="status-strip">
-              {isRootRoute ? (
+              {isAnalysisRoute ? (
                 <div className="list-info-bar" role="status" aria-label="谱面列表统计信息">
                   <Body1 className="list-stat">
                     <span className="list-stat-label">歌曲：</span>
