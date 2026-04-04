@@ -1043,12 +1043,8 @@ function PracticeModePage() {
 
     const arc = getTouchArcGeometry(touchCanvasRect.width, touchCanvasRect.height);
     const dx = zoneX - arc.centerX;
-    let arcY = arc.centerY;
-    if (Math.abs(dx) <= arc.radius) {
-      arcY = arc.centerY - Math.sqrt(arc.radius * arc.radius - dx * dx);
-    }
-
-    const isDon = zoneY >= arcY;
+    const dy = zoneY - arc.centerY;
+    const isDon = dx * dx + dy * dy <= arc.radius * arc.radius;
 
     event.preventDefault();
     triggerInputFeedback(isDon ? 'don' : 'ka');
