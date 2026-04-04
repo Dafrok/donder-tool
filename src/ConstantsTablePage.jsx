@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { flushSync } from 'react-dom';
 import {
   Breadcrumb,
@@ -123,55 +123,61 @@ const ConstantsVirtualList = memo(function ConstantsVirtualList({
           ))}
         </div>
       </div>
-      <VirtualizerScrollView
-        className="constants-virtual-scroll-root"
-        container={{ className: 'constants-virtual-scroll-container' }}
-        numItems={filteredRows.length}
-        itemSize={ROW_HEIGHT}
-        axis="vertical"
-      >
-        {(index) => {
-          const item = filteredRows[index];
-          if (!item) return null;
+      {filteredRows.length === 0 ? (
+        <div className="constants-virtual-scroll-root" aria-label="空列表">
+          <div className="constants-virtual-scroll-container" />
+        </div>
+      ) : (
+        <VirtualizerScrollView
+          className="constants-virtual-scroll-root"
+          container={{ className: 'constants-virtual-scroll-container' }}
+          numItems={filteredRows.length}
+          itemSize={ROW_HEIGHT}
+          axis="vertical"
+        >
+          {(index) => {
+            const item = filteredRows[index];
+            if (!item) return null;
 
-          return (
-            <div key={item.id} className="constants-row constants-virtual-row" role="row" onClick={() => openDetail(item)}>
-              {headers.map((header, columnIndex) => (
-                <div
-                  key={`${item.id}-${header.key}`}
-                  role="gridcell"
-                  aria-colindex={columnIndex + 1}
-                  className={`${columnIndex === 0 ? 'sticky-first-col-cell' : ''} constants-virtual-cell`.trim()}
-                  style={columnIndex === 0
-                    ? {
-                      width: 'var(--song-col-width)',
-                      minWidth: 'var(--song-col-width)',
-                      maxWidth: 'var(--song-col-width)',
-                      flexBasis: 'var(--song-col-width)'
-                    }
-                    : undefined}
-                >
-                  {columnIndex === categoryColumnIndex ? (
-                    <span className={`constants-category-badge ${getCategoryBadgeClass(item.cells[columnIndex])}`.trim()}>
-                      {item.cells[columnIndex] || '-'}
-                    </span>
-                  ) : columnIndex === difficultyColumnIndex ? (
-                    <span className={`constants-cell-text constants-difficulty-text ${getDifficultyTextClass(item.cells[columnIndex])}`.trim()}>
-                      {item.cells[columnIndex] || '-'}
-                    </span>
-                  ) : columnIndex === branchColumnIndex ? (
-                    <span className={`constants-branch-text ${getBranchTextClass(item.cells[columnIndex])}`.trim()}>
-                      {item.cells[columnIndex] || '-'}
-                    </span>
-                  ) : (
-                    <span className="constants-cell-text">{item.cells[columnIndex] || '-'}</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          );
-        }}
-      </VirtualizerScrollView>
+            return (
+              <div key={item.id} className="constants-row constants-virtual-row" role="row" onClick={() => openDetail(item)}>
+                {headers.map((header, columnIndex) => (
+                  <div
+                    key={`${item.id}-${header.key}`}
+                    role="gridcell"
+                    aria-colindex={columnIndex + 1}
+                    className={`${columnIndex === 0 ? 'sticky-first-col-cell' : ''} constants-virtual-cell`.trim()}
+                    style={columnIndex === 0
+                      ? {
+                        width: 'var(--song-col-width)',
+                        minWidth: 'var(--song-col-width)',
+                        maxWidth: 'var(--song-col-width)',
+                        flexBasis: 'var(--song-col-width)'
+                      }
+                      : undefined}
+                  >
+                    {columnIndex === categoryColumnIndex ? (
+                      <span className={`constants-category-badge ${getCategoryBadgeClass(item.cells[columnIndex])}`.trim()}>
+                        {item.cells[columnIndex] || '-'}
+                      </span>
+                    ) : columnIndex === difficultyColumnIndex ? (
+                      <span className={`constants-cell-text constants-difficulty-text ${getDifficultyTextClass(item.cells[columnIndex])}`.trim()}>
+                        {item.cells[columnIndex] || '-'}
+                      </span>
+                    ) : columnIndex === branchColumnIndex ? (
+                      <span className={`constants-branch-text ${getBranchTextClass(item.cells[columnIndex])}`.trim()}>
+                        {item.cells[columnIndex] || '-'}
+                      </span>
+                    ) : (
+                      <span className="constants-cell-text">{item.cells[columnIndex] || '-'}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            );
+          }}
+        </VirtualizerScrollView>
+      )}
     </div>
   );
 });
@@ -209,12 +215,10 @@ function ConstantsTablePage({ searchKeyword = '', onCountChange, onOpenDetail, i
   const [isPending, startTransition] = useTransition();
   const [isListBusy, setIsListBusy] = useState(false);
   const [sortState, setSortState] = useState({ columnIndex: -1, asc: true });
-  const [appliedSearchKeyword, setAppliedSearchKeyword] = useState(searchKeyword);
   const [headers, setHeaders] = useState([]);
   const [rows, setRows] = useState([]);
   const [loadingState, setLoadingState] = useState({ loading: false, error: '' });
   const [hasActivated, setHasActivated] = useState(isActive);
-  const deferredKeyword = useDeferredValue(appliedSearchKeyword);
   const pendingRaf1Ref = useRef(0);
   const pendingRaf2Ref = useRef(0);
   const pendingTimerRef = useRef(0);
@@ -266,13 +270,6 @@ function ConstantsTablePage({ searchKeyword = '', onCountChange, onOpenDetail, i
       });
     });
   }, [clearPendingSchedule, startTransition]);
-
-  useEffect(() => {
-    if (searchKeyword === appliedSearchKeyword) return;
-    scheduleListUpdate(() => {
-      setAppliedSearchKeyword(searchKeyword);
-    }, { immediate: false, mode: 'raf' });
-  }, [searchKeyword, appliedSearchKeyword, scheduleListUpdate]);
 
   useEffect(() => {
     if (!isPending && isListBusy) {
@@ -333,7 +330,7 @@ function ConstantsTablePage({ searchKeyword = '', onCountChange, onOpenDetail, i
   }, [hasActivated]);
 
   const filteredRows = useMemo(() => {
-    const normalizedKeyword = deferredKeyword.trim().toLowerCase();
+    const normalizedKeyword = searchKeyword.trim().toLowerCase();
     let result = rows;
 
     if (normalizedKeyword) {
@@ -368,9 +365,8 @@ function ConstantsTablePage({ searchKeyword = '', onCountChange, onOpenDetail, i
     }
 
     return result;
-  }, [deferredKeyword, rows, sortState]);
+  }, [searchKeyword, rows, sortState, headers]);
 
-  const isSearchKeywordPending = searchKeyword !== appliedSearchKeyword;
   const categoryColumnIndex = useMemo(() => findLastColumnIndex(headers, '分类'), [headers]);
   const difficultyColumnIndex = useMemo(() => findLastColumnIndex(headers, '难度'), [headers]);
   const branchColumnIndex = useMemo(() => findLastColumnIndex(headers, '分支'), [headers]);
@@ -467,14 +463,9 @@ function ConstantsTablePage({ searchKeyword = '', onCountChange, onOpenDetail, i
               renderSortIcon={renderSortIcon}
               openDetail={openDetail}
             />
-            {filteredRows.length === 0 ? (
-              <div className="constants-loading-wrap">
-                <Body1>没有匹配的数据</Body1>
-              </div>
-            ) : null}
           </>
         ) : null}
-        {!loadingState.loading && !loadingState.error && (isPending || isListBusy || isSearchKeywordPending) ? (
+        {!loadingState.loading && !loadingState.error && (isPending || isListBusy) ? (
           <div className="constants-list-busy-overlay" aria-live="polite" aria-label="列表更新中">
             <Spinner size="medium" label="更新列表中..." />
           </div>
