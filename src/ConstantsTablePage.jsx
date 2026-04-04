@@ -6,70 +6,67 @@ import {
   BreadcrumbDivider,
   BreadcrumbItem,
   Body1,
-  Button,
-  DataGrid,
-  DataGridBody,
-  DataGridCell,
-  DataGridHeader,
-  DataGridHeaderCell,
-  DataGridRow,
-  Spinner,
-  createTableColumn
+  Spinner
 } from '@fluentui/react-components';
+import { VirtualizerScrollView } from '@fluentui/react-virtualizer';
 
 let constantsCache = null;
+const ROW_HEIGHT = 52;
 
-const ConstantsDataGrid = memo(function ConstantsDataGrid({
+const ConstantsVirtualList = memo(function ConstantsVirtualList({
+  headers,
   filteredRows,
-  gridColumns,
-  columnSizingOptions,
   handleSort,
   renderSortIcon,
   openDetail
 }) {
   return (
-    <DataGrid
-      className="table-grid constants-grid"
-      items={filteredRows}
-      columns={gridColumns}
-      columnSizingOptions={columnSizingOptions}
-      getRowId={(item) => item.id}
-      focusMode="composite"
-    >
-      <DataGridHeader>
-        <DataGridRow>
-          {({ renderHeaderCell, columnId }) => {
-            const columnIndex = Number(String(columnId).replace('col', ''));
-            return (
-              <DataGridHeaderCell
-                onClick={() => handleSort(columnIndex)}
-                className={`${columnIndex === 0 ? 'sticky-first-col-header' : ''} sortable`.trim()}
-                style={columnIndex === 0
-                  ? {
-                    width: 'var(--song-col-width)',
-                    minWidth: 'var(--song-col-width)',
-                    maxWidth: 'var(--song-col-width)',
-                    flexBasis: 'var(--song-col-width)'
-                  }
-                  : undefined}
-              >
-                <span className="header-cell-text">
-                  <span className="header-title-text">{renderHeaderCell()}</span>
-                  <span className="sort-indicator">{renderSortIcon(columnIndex)}</span>
-                </span>
-              </DataGridHeaderCell>
-            );
-          }}
-        </DataGridRow>
-      </DataGridHeader>
-      <DataGridBody>
-        {({ item, rowId }) => (
-          <DataGridRow key={rowId} className="constants-row" onClick={() => openDetail(item)}>
-            {({ renderCell, columnId }) => {
-              const columnIndex = Number(String(columnId).replace('col', ''));
-              return (
-                <DataGridCell
-                  className={columnIndex === 0 ? 'sticky-first-col-cell' : ''}
+    <div className="constants-virtual-grid table-grid" role="table" aria-label="定数表">
+      <div className="constants-virtual-header" role="rowgroup">
+        <div className="constants-virtual-header-row" role="row">
+          {headers.map((header, columnIndex) => (
+            <div
+              key={header.key}
+              role="columnheader"
+              aria-colindex={columnIndex + 1}
+              onClick={() => handleSort(columnIndex)}
+              className={`${columnIndex === 0 ? 'sticky-first-col-header' : ''} sortable constants-virtual-cell constants-virtual-header-cell`.trim()}
+              style={columnIndex === 0
+                ? {
+                  width: 'var(--song-col-width)',
+                  minWidth: 'var(--song-col-width)',
+                  maxWidth: 'var(--song-col-width)',
+                  flexBasis: 'var(--song-col-width)'
+                }
+                : undefined}
+            >
+              <span className="header-cell-text">
+                <span className="header-title-text">{header.label}</span>
+                <span className="sort-indicator">{renderSortIcon(columnIndex)}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <VirtualizerScrollView
+        className="constants-virtual-scroll-root"
+        container={{ className: 'constants-virtual-scroll-container' }}
+        numItems={filteredRows.length}
+        itemSize={ROW_HEIGHT}
+        axis="vertical"
+      >
+        {(index) => {
+          const item = filteredRows[index];
+          if (!item) return null;
+
+          return (
+            <div key={item.id} className="constants-row constants-virtual-row" role="row" onClick={() => openDetail(item)}>
+              {headers.map((header, columnIndex) => (
+                <div
+                  key={`${item.id}-${header.key}`}
+                  role="gridcell"
+                  aria-colindex={columnIndex + 1}
+                  className={`${columnIndex === 0 ? 'sticky-first-col-cell' : ''} constants-virtual-cell`.trim()}
                   style={columnIndex === 0
                     ? {
                       width: 'var(--song-col-width)',
@@ -79,14 +76,14 @@ const ConstantsDataGrid = memo(function ConstantsDataGrid({
                     }
                     : undefined}
                 >
-                  {renderCell(item)}
-                </DataGridCell>
-              );
-            }}
-          </DataGridRow>
-        )}
-      </DataGridBody>
-    </DataGrid>
+                  {item.cells[columnIndex] || '-'}
+                </div>
+              ))}
+            </div>
+          );
+        }}
+      </VirtualizerScrollView>
+    </div>
   );
 });
 
@@ -119,8 +116,6 @@ function ConstantsTablePage({ searchKeyword = '', onCountChange, onOpenDetail, i
   const [rows, setRows] = useState([]);
   const [loadingState, setLoadingState] = useState({ loading: false, error: '' });
   const [hasActivated, setHasActivated] = useState(isActive);
-  const [currentPage, setCurrentPage] = useState(1);
-  const ROWS_PER_PAGE = 50;
   const deferredKeyword = useDeferredValue(appliedSearchKeyword);
   const pendingRaf1Ref = useRef(0);
   const pendingRaf2Ref = useRef(0);
@@ -180,11 +175,6 @@ function ConstantsTablePage({ searchKeyword = '', onCountChange, onOpenDetail, i
       setAppliedSearchKeyword(searchKeyword);
     }, { immediate: false, mode: 'raf' });
   }, [searchKeyword, appliedSearchKeyword, scheduleListUpdate]);
-
-  // 当搜索或排序改变时，重置回第一页
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [appliedSearchKeyword, sortState]);
 
   useEffect(() => {
     if (!isPending && isListBusy) {
@@ -275,49 +265,13 @@ function ConstantsTablePage({ searchKeyword = '', onCountChange, onOpenDetail, i
     return result;
   }, [deferredKeyword, rows, sortState]);
 
-  // 分页计算
-  const paginationInfo = useMemo(() => {
-    const total = filteredRows.length;
-    const totalPages = Math.ceil(total / ROWS_PER_PAGE);
-    const validPage = Math.max(1, Math.min(currentPage, totalPages || 1));
-    const startIndex = (validPage - 1) * ROWS_PER_PAGE;
-    const endIndex = startIndex + ROWS_PER_PAGE;
-    const paginatedRows = filteredRows.slice(startIndex, endIndex);
-    return {
-      paginatedRows,
-      currentPage: validPage,
-      totalPages,
-      totalRows: total,
-      startIndex,
-      endIndex
-    };
-  }, [filteredRows, currentPage, ROWS_PER_PAGE]);
-
   const isSearchKeywordPending = searchKeyword !== appliedSearchKeyword;
 
   useEffect(() => {
     if (isActive && typeof onCountChange === 'function') {
-      onCountChange(paginationInfo.totalRows);
+      onCountChange(filteredRows.length);
     }
-  }, [paginationInfo.totalRows, onCountChange, isActive]);
-
-  const columnSizingOptions = useMemo(() => ({
-    col0: {
-      minWidth: 220,
-      idealWidth: 220,
-      defaultWidth: 220
-    }
-  }), []);
-
-  const gridColumns = useMemo(() => {
-    return headers.map((header, columnIndex) => {
-      return createTableColumn({
-        columnId: `col${columnIndex}`,
-        renderHeaderCell: () => header.label,
-        renderCell: (item) => item.cells[columnIndex] || '-'
-      });
-    });
-  }, [headers]);
+  }, [filteredRows.length, onCountChange, isActive]);
 
   const handleSort = useCallback((columnIndex) => {
     scheduleListUpdate(() => {
@@ -395,38 +349,18 @@ function ConstantsTablePage({ searchKeyword = '', onCountChange, onOpenDetail, i
         ) : null}
         {!loadingState.loading && !loadingState.error ? (
           <>
-            <ConstantsDataGrid
-              filteredRows={paginationInfo.paginatedRows}
-              gridColumns={gridColumns}
-              columnSizingOptions={columnSizingOptions}
+            <ConstantsVirtualList
+              headers={headers}
+              filteredRows={filteredRows}
               handleSort={handleSort}
               renderSortIcon={renderSortIcon}
               openDetail={openDetail}
             />
-            <div className="pagination-controls" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', padding: '16px', borderTop: '1px solid #f0f0f0' }}>
-              <Button
-                appearance="subtle"
-                size="small"
-                disabled={paginationInfo.currentPage <= 1}
-                onClick={() => setCurrentPage(Math.max(1, paginationInfo.currentPage - 1))}
-              >
-                上一页
-              </Button>
-              <Body1 style={{ margin: '0 8px', minWidth: '120px', textAlign: 'center' }}>
-                第 {paginationInfo.currentPage} / {paginationInfo.totalPages} 页
-                <span style={{ fontSize: '12px', color: '#767676', marginLeft: '8px' }}>
-                  (共 {paginationInfo.totalRows} 条)
-                </span>
-              </Body1>
-              <Button
-                appearance="subtle"
-                size="small"
-                disabled={paginationInfo.currentPage >= paginationInfo.totalPages}
-                onClick={() => setCurrentPage(Math.min(paginationInfo.totalPages, paginationInfo.currentPage + 1))}
-              >
-                下一页
-              </Button>
-            </div>
+            {filteredRows.length === 0 ? (
+              <div className="constants-loading-wrap">
+                <Body1>没有匹配的数据</Body1>
+              </div>
+            ) : null}
           </>
         ) : null}
         {!loadingState.loading && !loadingState.error && (isPending || isListBusy || isSearchKeywordPending) ? (
