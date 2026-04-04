@@ -593,7 +593,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
 }
 
 .constants-loading-wrap {
@@ -831,9 +831,25 @@ body {
 }
 
 .constants-virtual-scroll-container {
-  height: 100%;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
+  height: auto;
+  overflow: visible !important;
+}
+
+/* Sticky first-column fallback for virtualized constants grid. */
+.constants-virtual-grid [role='columnheader'][aria-colindex='1'] {
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 12 !important;
+  background: linear-gradient(180deg, #fff0e1 0%, #ffe1c6 100%) !important;
+  box-shadow: 1px 0 0 #efc19d;
+}
+
+.constants-virtual-grid [role='gridcell'][aria-colindex='1'] {
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 7 !important;
+  background: #fff8ef !important;
+  box-shadow: 1px 0 0 #efc19d;
 }
 
 .constants-row:hover {
