@@ -9,6 +9,51 @@ import {
   Link
 } from '@fluentui/react-components';
 
+function normalizeComparableUrl(urlLike) {
+  if (!urlLike) return '';
+  try {
+    const url = new URL(urlLike, window.location.href);
+    return `${url.origin}${url.pathname}${url.search}`;
+  } catch (_) {
+    return String(urlLike);
+  }
+}
+
+function getCurrentEntryScriptUrl() {
+  const moduleScripts = Array.from(document.querySelectorAll('script[type="module"][src]'));
+  if (!moduleScripts.length) return '';
+  return moduleScripts[moduleScripts.length - 1]?.src || '';
+}
+
+async function getServerEntryScriptUrl(scope) {
+  const indexUrl = new URL(`index.html?__update_check=${Date.now()}`, scope).toString();
+  const response = await fetch(indexUrl, { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(`获取线上 index 失败（${response.status}）`);
+  }
+
+  const html = await response.text();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const moduleScripts = Array.from(doc.querySelectorAll('script[type="module"][src]'));
+  if (!moduleScripts.length) return '';
+  const lastScriptSrc = moduleScripts[moduleScripts.length - 1]?.getAttribute('src') || '';
+  if (!lastScriptSrc) return '';
+  return new URL(lastScriptSrc, scope).toString();
+}
+
+async function forceRefreshFromServer(registration) {
+  if ('caches' in window) {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((key) => caches.delete(key)));
+  }
+
+  await registration.unregister();
+  const url = new URL(window.location.href);
+  url.searchParams.set('__force_refresh', String(Date.now()));
+  window.location.replace(url.toString());
+}
+
 function AboutPage({ footerInfo, isOffline, onBack }) {
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [updateHint, setUpdateHint] = useState('');
@@ -58,7 +103,21 @@ function AboutPage({ footerInfo, isOffline, onBack }) {
           setUpdateHint('已检测到新版本，稍后可再次点击检查更新。');
         }
       } else {
-        setUpdateHint('当前已经是最新版本。');
+        const currentEntryUrl = getCurrentEntryScriptUrl();
+        const serverEntryUrl = await getServerEntryScriptUrl(latestRegistration?.scope || registration.scope || window.location.origin);
+
+        if (currentEntryUrl && serverEntryUrl
+          && normalizeComparableUrl(currentEntryUrl) !== normalizeComparableUrl(serverEntryUrl)) {
+          const shouldForceRefresh = window.confirm('检测到静态资源已更新，是否立即强制刷新并更新离线缓存？');
+          if (shouldForceRefresh) {
+            setUpdateHint('检测到资源变化，正在强制刷新并更新缓存...');
+            await forceRefreshFromServer(latestRegistration || registration);
+            return;
+          }
+          setUpdateHint('已检测到静态资源变化，稍后可再次点击检查更新。');
+        } else {
+          setUpdateHint('当前已经是最新版本。');
+        }
       }
     } catch (error) {
       setUpdateHint(`检查更新失败：${error?.message || String(error)}`);
