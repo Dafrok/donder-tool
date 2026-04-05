@@ -560,7 +560,7 @@ function PracticeModePage() {
         hitFxRef.current = hitFxRef.current.filter((fx) => nowPerf - fx.time <= HIT_FLASH_MS);
         judgeFxRef.current = judgeFxRef.current.filter((fx) => nowPerf - fx.time <= JUDGE_FEEDBACK_MS);
         balloonFxRef.current = balloonFxRef.current.filter((fx) => nowPerf - fx.time <= BALLOON_POP_FX_MS);
-        hitNoteFxRef.current = hitNoteFxRef.current.filter((fx) => nowPerf - fx.time <= HIT_NOTE_HOLD_MS + HIT_NOTE_FLY_MS);
+        hitNoteFxRef.current = hitNoteFxRef.current.filter((fx) => nowPerf - fx.time <= HIT_NOTE_FLY_MS);
         setHitFxTick((prev) => prev + 1);
         if (hitFxRef.current.length > 0 || judgeFxRef.current.length > 0 || balloonFxRef.current.length > 0 || hitNoteFxRef.current.length > 0) {
           hitFxRafRef.current = requestAnimationFrame(animateHitFx);
@@ -618,7 +618,7 @@ function PracticeModePage() {
       hitFxRef.current = hitFxRef.current.filter((fx) => nowPerf - fx.time <= HIT_FLASH_MS);
       judgeFxRef.current = judgeFxRef.current.filter((fx) => nowPerf - fx.time <= JUDGE_FEEDBACK_MS);
       balloonFxRef.current = balloonFxRef.current.filter((fx) => nowPerf - fx.time <= BALLOON_POP_FX_MS);
-      hitNoteFxRef.current = hitNoteFxRef.current.filter((fx) => nowPerf - fx.time <= HIT_NOTE_HOLD_MS + HIT_NOTE_FLY_MS);
+      hitNoteFxRef.current = hitNoteFxRef.current.filter((fx) => nowPerf - fx.time <= HIT_NOTE_FLY_MS);
       setHitFxTick((prev) => prev + 1);
       if (hitFxRef.current.length > 0 || judgeFxRef.current.length > 0 || balloonFxRef.current.length > 0 || hitNoteFxRef.current.length > 0) {
         hitFxRafRef.current = requestAnimationFrame(animateHitFx);
@@ -652,7 +652,7 @@ function PracticeModePage() {
       hitFxRef.current = hitFxRef.current.filter((fx) => nowPerf - fx.time <= HIT_FLASH_MS);
       judgeFxRef.current = judgeFxRef.current.filter((fx) => nowPerf - fx.time <= JUDGE_FEEDBACK_MS);
       balloonFxRef.current = balloonFxRef.current.filter((fx) => nowPerf - fx.time <= BALLOON_POP_FX_MS);
-      hitNoteFxRef.current = hitNoteFxRef.current.filter((fx) => nowPerf - fx.time <= HIT_NOTE_HOLD_MS + HIT_NOTE_FLY_MS);
+      hitNoteFxRef.current = hitNoteFxRef.current.filter((fx) => nowPerf - fx.time <= HIT_NOTE_FLY_MS);
       setHitFxTick((prev) => prev + 1);
       if (hitFxRef.current.length > 0 || judgeFxRef.current.length > 0 || balloonFxRef.current.length > 0 || hitNoteFxRef.current.length > 0) {
         hitFxRafRef.current = requestAnimationFrame(animateHitFx);
@@ -667,7 +667,7 @@ function PracticeModePage() {
     const now = performance.now();
     const sideJitter = (Math.random() - 0.5) * 18;
     hitNoteFxRef.current = [
-      ...hitNoteFxRef.current.filter((fx) => now - fx.time <= HIT_NOTE_HOLD_MS + HIT_NOTE_FLY_MS),
+      ...hitNoteFxRef.current.filter((fx) => now - fx.time <= HIT_NOTE_FLY_MS),
       {
         time: now,
         type: note.type,
@@ -686,7 +686,7 @@ function PracticeModePage() {
       hitFxRef.current = hitFxRef.current.filter((fx) => nowPerf - fx.time <= HIT_FLASH_MS);
       judgeFxRef.current = judgeFxRef.current.filter((fx) => nowPerf - fx.time <= JUDGE_FEEDBACK_MS);
       balloonFxRef.current = balloonFxRef.current.filter((fx) => nowPerf - fx.time <= BALLOON_POP_FX_MS);
-      hitNoteFxRef.current = hitNoteFxRef.current.filter((fx) => nowPerf - fx.time <= HIT_NOTE_HOLD_MS + HIT_NOTE_FLY_MS);
+      hitNoteFxRef.current = hitNoteFxRef.current.filter((fx) => nowPerf - fx.time <= HIT_NOTE_FLY_MS);
       setHitFxTick((prev) => prev + 1);
       if (hitFxRef.current.length > 0 || judgeFxRef.current.length > 0 || balloonFxRef.current.length > 0 || hitNoteFxRef.current.length > 0) {
         hitFxRafRef.current = requestAnimationFrame(animateHitFx);
@@ -723,7 +723,7 @@ function PracticeModePage() {
       hitFxRef.current = hitFxRef.current.filter((fx) => nowPerf - fx.time <= HIT_FLASH_MS);
       judgeFxRef.current = judgeFxRef.current.filter((fx) => nowPerf - fx.time <= JUDGE_FEEDBACK_MS);
       balloonFxRef.current = balloonFxRef.current.filter((fx) => nowPerf - fx.time <= BALLOON_POP_FX_MS);
-      hitNoteFxRef.current = hitNoteFxRef.current.filter((fx) => nowPerf - fx.time <= HIT_NOTE_HOLD_MS + HIT_NOTE_FLY_MS);
+      hitNoteFxRef.current = hitNoteFxRef.current.filter((fx) => nowPerf - fx.time <= HIT_NOTE_FLY_MS);
       setHitFxTick((prev) => prev + 1);
       if (hitFxRef.current.length > 0 || judgeFxRef.current.length > 0 || balloonFxRef.current.length > 0 || hitNoteFxRef.current.length > 0) {
         hitFxRafRef.current = requestAnimationFrame(animateHitFx);
@@ -967,7 +967,7 @@ function PracticeModePage() {
     hitFxRef.current = hitFxRef.current.filter((fx) => now - fx.time <= HIT_FLASH_MS);
     judgeFxRef.current = judgeFxRef.current.filter((fx) => now - fx.time <= JUDGE_FEEDBACK_MS);
     balloonFxRef.current = balloonFxRef.current.filter((fx) => now - fx.time <= BALLOON_POP_FX_MS);
-    hitNoteFxRef.current = hitNoteFxRef.current.filter((fx) => now - fx.time <= HIT_NOTE_HOLD_MS + HIT_NOTE_FLY_MS);
+    hitNoteFxRef.current = hitNoteFxRef.current.filter((fx) => now - fx.time <= HIT_NOTE_FLY_MS);
     setNowMs(current);
 
     setNotes((prev) => {
@@ -2283,11 +2283,10 @@ function PracticeModePage() {
 
     for (const hitNoteFx of hitNoteFxRef.current) {
       const elapsed = nowPerf - hitNoteFx.time;
-      if (elapsed < 0 || elapsed > HIT_NOTE_HOLD_MS + HIT_NOTE_FLY_MS) continue;
+      if (elapsed < 0 || elapsed > HIT_NOTE_FLY_MS) continue;
 
       const radius = hitNoteFx.isBig ? dynamicBigRadius : dynamicSmallRadius;
-      const holdProgress = Math.min(1, elapsed / HIT_NOTE_HOLD_MS);
-      const flyProgress = Math.max(0, Math.min(1, (elapsed - HIT_NOTE_HOLD_MS) / HIT_NOTE_FLY_MS));
+      const flyProgress = Math.max(0, Math.min(1, elapsed / HIT_NOTE_FLY_MS));
       const travelX = laneDisplayWidth * 0.92;
       const x = judgeX + hitNoteFx.sideJitter + flyProgress * travelX;
       const tan45 = 1;
@@ -2295,10 +2294,8 @@ function PracticeModePage() {
       const decelLift = baseLift * 0.42;
       const yLift = baseLift * flyProgress - decelLift * flyProgress * flyProgress;
       const y = laneY - yLift;
-      const alpha = flyProgress <= 0 ? 1 : Math.max(0, 1 - Math.pow(flyProgress, 1.15));
-      const scale = flyProgress <= 0
-        ? 1 + Math.sin(holdProgress * Math.PI) * 0.03
-        : Math.max(0.44, 1 - flyProgress * 0.56);
+      const alpha = Math.max(0, 1 - Math.pow(flyProgress, 1.15));
+      const scale = Math.max(0.44, 1 - flyProgress * 0.56);
 
       ctx.save();
       ctx.globalAlpha = alpha;
