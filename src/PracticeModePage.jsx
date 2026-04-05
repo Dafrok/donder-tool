@@ -77,6 +77,9 @@ const DRIFT_INTEGRAL_ENABLE_AFTER_MS = 900;
 const DRIFT_INTEGRAL_GAIN_PER_SEC = 0.38;
 const DRIFT_INTEGRAL_LEAK_PER_SEC = 0.08;
 const DRIFT_INTEGRAL_MAX_MS = 26;
+const DRIFT_TARGET_DEADZONE_MS = 1;
+const DRIFT_HARD_CHASE_GAIN = 0.72;
+const MAX_DRIFT_HARD_CHASE_MS = 24;
 const MAX_DRIFT_SAMPLE_MS = 220;
 const MAX_DRIFT_CORRECTION_MS = 110;
 const DRIFT_BASELINE_WARMUP_MS = 160;
@@ -905,9 +908,20 @@ function PracticeModePage() {
         // then use capped residual correction and a bounded integral term to remove steady-state bias.
         current = perfClockMs + driftBaselineAppliedMsRef.current + residualCorrectionMs + integralCorrectionMs;
 
+        let feltSyncDeltaMs = audioClockMs - current;
+        if (Math.abs(feltSyncDeltaMs) > DRIFT_TARGET_DEADZONE_MS) {
+          const signedDeadzone = Math.sign(feltSyncDeltaMs) * DRIFT_TARGET_DEADZONE_MS;
+          const chaseError = feltSyncDeltaMs - signedDeadzone;
+          const hardChaseMs = Math.max(
+            -MAX_DRIFT_HARD_CHASE_MS,
+            Math.min(MAX_DRIFT_HARD_CHASE_MS, chaseError * DRIFT_HARD_CHASE_GAIN)
+          );
+          current += hardChaseMs;
+          feltSyncDeltaMs = audioClockMs - current;
+        }
+
         if (nowPerf - driftDisplayUpdateAtRef.current >= DRIFT_MONITOR_UPDATE_MS) {
           driftDisplayUpdateAtRef.current = nowPerf;
-          const feltSyncDeltaMs = audioClockMs - current;
           setClockDriftMs(Math.round(feltSyncDeltaMs));
         }
       }
