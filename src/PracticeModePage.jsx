@@ -581,19 +581,30 @@ function PracticeModePage() {
     ensureFxAnimation();
   }, []);
 
-  const pushJudgeFeedback = useCallback((result) => {
+  const pushJudgeFeedback = useCallback((result, deltaMs) => {
     const configMap = {
-      perfect: { text: '可', fill: '#ffffff', stroke: '#2a3342', burstColor: [255, 255, 255] },
-      good: { text: '良', fill: '#ffd65c', stroke: '#2a3342', burstColor: [255, 218, 92] },
+      perfect: { text: '良', fill: '#ffd65c', stroke: '#2a3342', burstColor: [255, 218, 92] },
+      good: { text: '可', fill: '#ffffff', stroke: '#2a3342', burstColor: [255, 255, 255] },
       bad: { text: '不可', fill: '#6fb1ff', stroke: '#2a3342', burstColor: null }
     };
     const config = configMap[result];
     if (!config) return;
 
+    const roundedDelta = Number.isFinite(deltaMs) ? Math.round(deltaMs) : null;
+    const deltaText = Number.isFinite(roundedDelta)
+      ? `${roundedDelta > 0 ? '+' : ''}${roundedDelta}ms`
+      : '';
+    const deltaFill = Number.isFinite(roundedDelta)
+      ? (roundedDelta > 0 ? '#9fd4ff' : (roundedDelta < 0 ? '#ffc392' : '#ffffff'))
+      : '#ffffff';
+
     const now = performance.now();
     judgeFxRef.current = [...judgeFxRef.current.filter((fx) => now - fx.time <= JUDGE_FEEDBACK_MS), {
       time: now,
       particles: config.burstColor ? buildJudgeParticles() : [],
+      deltaText,
+      deltaFill,
+      deltaStroke: '#2a3342',
       ...config
     }];
     setHitFxTick((prev) => prev + 1);
@@ -1326,7 +1337,7 @@ function PracticeModePage() {
     if (result === 'perfect' || result === 'good') {
       pushHitNoteFx(note);
     }
-    pushJudgeFeedback(result);
+    pushJudgeFeedback(result, delta);
   }, [isPlaying, getCurrentChartTimeMs, notes, pushJudgeFeedback, pushRollComboFeedback, pushHitNoteFx, balloons, pushBalloonBurst, rolls]);
 
   const getTouchArcGeometry = useCallback((zoneWidth, zoneHeight) => {
@@ -1894,8 +1905,8 @@ function PracticeModePage() {
     ctx.textBaseline = 'middle';
     ctx.font = '900 20px "Microsoft YaHei", "Noto Sans SC", sans-serif';
     const statusItems = [
-      { text: `良 ${summary.good}`, color: '#ffd65c' },
-      { text: `可 ${summary.perfect}`, color: '#ffffff' },
+      { text: `良 ${summary.perfect}`, color: '#ffd65c' },
+      { text: `可 ${summary.good}`, color: '#ffffff' },
       { text: `不可 ${ngCount}`, color: '#6fb1ff' },
       { text: `连打 ${rollBalloonHits}`, color: '#ffb66b' }
     ];
@@ -2232,11 +2243,41 @@ function PracticeModePage() {
       ctx.lineJoin = 'round';
       ctx.miterLimit = 2;
       ctx.font = `900 ${fontSize}px "Microsoft YaHei", "Noto Sans SC", sans-serif`;
-      ctx.lineWidth = 6 * rowWidthScale;
-      ctx.strokeStyle = judgeFx.stroke;
-      ctx.strokeText(judgeFx.text, 0, 0);
-      ctx.fillStyle = judgeFx.fill;
-      ctx.fillText(judgeFx.text, 0, 0);
+      const popupGap = Math.max(8, Math.round(12 * rowWidthScale));
+      const mainText = judgeFx.text;
+      const hasDeltaText = Boolean(judgeFx.deltaText);
+      const mainMetrics = ctx.measureText(mainText);
+      const mainWidth = Math.max(1, mainMetrics.width);
+
+      if (hasDeltaText) {
+        const deltaFontSize = fontSize;
+        const deltaFont = `800 ${deltaFontSize}px "Microsoft YaHei", "Noto Sans SC", sans-serif`;
+        ctx.font = deltaFont;
+        const deltaMetrics = ctx.measureText(judgeFx.deltaText);
+        const deltaWidth = Math.max(1, deltaMetrics.width);
+        const mainX = 0;
+        const deltaX = mainWidth / 2 + popupGap + deltaWidth / 2;
+
+        ctx.font = `900 ${fontSize}px "Microsoft YaHei", "Noto Sans SC", sans-serif`;
+        ctx.lineWidth = 6 * rowWidthScale;
+        ctx.strokeStyle = judgeFx.stroke;
+        ctx.strokeText(mainText, mainX, 0);
+        ctx.fillStyle = judgeFx.fill;
+        ctx.fillText(mainText, mainX, 0);
+
+        ctx.font = deltaFont;
+        ctx.lineWidth = Math.max(4, 5 * rowWidthScale);
+        ctx.strokeStyle = judgeFx.deltaStroke || '#2a3342';
+        ctx.strokeText(judgeFx.deltaText, deltaX, 0);
+        ctx.fillStyle = judgeFx.deltaFill || '#ffffff';
+        ctx.fillText(judgeFx.deltaText, deltaX, 0);
+      } else {
+        ctx.lineWidth = 6 * rowWidthScale;
+        ctx.strokeStyle = judgeFx.stroke;
+        ctx.strokeText(mainText, 0, 0);
+        ctx.fillStyle = judgeFx.fill;
+        ctx.fillText(mainText, 0, 0);
+      }
       ctx.restore();
     }
 
