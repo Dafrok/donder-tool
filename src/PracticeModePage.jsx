@@ -72,6 +72,10 @@ const DRIFT_SMOOTH_FACTOR = 0.12;
 const DRIFT_CORRECTION_RATIO = 0.55;
 const MAX_DRIFT_SAMPLE_MS = 220;
 const MAX_DRIFT_CORRECTION_MS = 110;
+const DRIFT_BASELINE_WARMUP_MS = 160;
+const DRIFT_BASELINE_WINDOW_MS = 2200;
+const DRIFT_BASELINE_MIN_SAMPLES = 12;
+const DRIFT_BASELINE_ADAPT_FACTOR = 0.1;
 
 function PracticeModePage() {
   const fileInputRef = useRef(null);
@@ -100,6 +104,11 @@ function PracticeModePage() {
   const hitFxRafRef = useRef(0);
   const driftEstimateMsRef = useRef(0);
   const driftDisplayUpdateAtRef = useRef(0);
+  const driftBaselineMsRef = useRef(0);
+  const driftBaselineAppliedMsRef = useRef(0);
+  const driftBaselineAccumMsRef = useRef(0);
+  const driftBaselineSampleCountRef = useRef(0);
+  const driftBaselineLockedRef = useRef(false);
 
   const [, setStatusText] = useState('准备就绪：导入本地 TJA 后点击开始。按键：F/J=咚，D/K=咔。');
   const [songTitle, setSongTitle] = useState('');
@@ -734,6 +743,11 @@ function PracticeModePage() {
     })));
     driftEstimateMsRef.current = 0;
     driftDisplayUpdateAtRef.current = 0;
+    driftBaselineMsRef.current = 0;
+    driftBaselineAppliedMsRef.current = 0;
+    driftBaselineAccumMsRef.current = 0;
+    driftBaselineSampleCountRef.current = 0;
+    driftBaselineLockedRef.current = false;
     setClockDriftMs(0);
     setHitFxTick((prev) => prev + 1);
     setStatusText('已重置，点击开始进行练习。');
@@ -791,19 +805,43 @@ function PracticeModePage() {
         current = nowPerf - scheduledStartRef.current + audioSyncOffsetMs - touchAudioLatencyCompensationMs;
       } else if (!audioRef.current.paused && Number.isFinite(audioRef.current.currentTime)) {
         const audioClockMs = audioRef.current.currentTime * 1000 + audioSyncOffsetMs - touchAudioLatencyCompensationMs;
+        const audioElapsedMs = audioRef.current.currentTime * 1000;
         const rawDrift = Math.max(-MAX_DRIFT_SAMPLE_MS, Math.min(MAX_DRIFT_SAMPLE_MS, audioClockMs - perfClockMs));
         const smoothedDrift = driftEstimateMsRef.current + (rawDrift - driftEstimateMsRef.current) * DRIFT_SMOOTH_FACTOR;
         driftEstimateMsRef.current = smoothedDrift;
 
+        if (audioElapsedMs >= DRIFT_BASELINE_WARMUP_MS && audioElapsedMs <= DRIFT_BASELINE_WINDOW_MS) {
+          driftBaselineAccumMsRef.current += smoothedDrift;
+          driftBaselineSampleCountRef.current += 1;
+        }
+
+        if (
+          !driftBaselineLockedRef.current &&
+          audioElapsedMs > DRIFT_BASELINE_WINDOW_MS &&
+          driftBaselineSampleCountRef.current >= DRIFT_BASELINE_MIN_SAMPLES
+        ) {
+          driftBaselineMsRef.current = driftBaselineAccumMsRef.current / driftBaselineSampleCountRef.current;
+          driftBaselineLockedRef.current = true;
+        }
+
+        const baselineTarget = driftBaselineLockedRef.current
+          ? driftBaselineMsRef.current
+          : (driftBaselineSampleCountRef.current > 0
+            ? driftBaselineAccumMsRef.current / driftBaselineSampleCountRef.current
+            : 0);
+        driftBaselineAppliedMsRef.current += (baselineTarget - driftBaselineAppliedMsRef.current) * DRIFT_BASELINE_ADAPT_FACTOR;
+
+        const residualDrift = smoothedDrift - driftBaselineAppliedMsRef.current;
+
         const correctionMs = Math.max(
           -MAX_DRIFT_CORRECTION_MS,
-          Math.min(MAX_DRIFT_CORRECTION_MS, smoothedDrift * DRIFT_CORRECTION_RATIO)
+          Math.min(MAX_DRIFT_CORRECTION_MS, residualDrift * DRIFT_CORRECTION_RATIO)
         );
         current = perfClockMs + correctionMs;
 
         if (nowPerf - driftDisplayUpdateAtRef.current >= DRIFT_MONITOR_UPDATE_MS) {
           driftDisplayUpdateAtRef.current = nowPerf;
-          setClockDriftMs(Math.round(smoothedDrift));
+          setClockDriftMs(Math.round(residualDrift));
         }
       }
     }
@@ -856,6 +894,11 @@ function PracticeModePage() {
     setNowMs(-PRE_ROLL_MS);
     driftEstimateMsRef.current = 0;
     driftDisplayUpdateAtRef.current = 0;
+    driftBaselineMsRef.current = 0;
+    driftBaselineAppliedMsRef.current = 0;
+    driftBaselineAccumMsRef.current = 0;
+    driftBaselineSampleCountRef.current = 0;
+    driftBaselineLockedRef.current = false;
     setClockDriftMs(0);
     setRollBalloonHits(0);
     setStreakHits(0);
