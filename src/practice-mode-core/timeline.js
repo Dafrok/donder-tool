@@ -1,4 +1,4 @@
-import { getEffectiveBpm } from '../../TJARenderer/src/tja-parser.ts';
+import { getEffectiveBpm, getEffectiveScroll } from '../../TJARenderer/src/tja-parser.ts';
 import { NoteType } from '../../TJARenderer/src/primitives.ts';
 import { NOTE_SMALL_RADIUS } from './constants.js';
 
@@ -35,11 +35,22 @@ export function buildTimeline(playableChart, initialTimeMs = 0) {
   const notes = [];
   const barLines = [];
   const flatEvents = [];
+  const scrollAnchors = [];
+
+  const pushScrollAnchor = (timeMs, scroll) => {
+    if (!Number.isFinite(timeMs) || !Number.isFinite(scroll)) return;
+    const last = scrollAnchors[scrollAnchors.length - 1];
+    if (last && Math.abs(last.timeMs - timeMs) < 0.0001) {
+      last.scroll = scroll;
+      return;
+    }
+    scrollAnchors.push({ timeMs, scroll });
+  };
 
   for (let barIndex = 0; barIndex < bars.length; barIndex += 1) {
     const bar = bars[barIndex] || [];
     const params = barParams[barIndex];
-    if (!params || !bar.length) {
+    if (!params) {
       continue;
     }
 
@@ -50,22 +61,51 @@ export function buildTimeline(playableChart, initialTimeMs = 0) {
       });
     }
 
+    pushScrollAnchor(currentMs, getEffectiveScroll(params, 0));
+
+    const timingSlices = Math.max(1, bar.length);
     const charTimings = new Array(bar.length + 1).fill(0);
-    for (let i = 0; i < bar.length; i += 1) {
-      const bpm = getEffectiveBpm(params, i);
-      const stepMs = ((params.measureRatio / bar.length) * 240000) / bpm;
-      charTimings[i + 1] = charTimings[i] + stepMs;
+    const delayChanges = [...(params.delayChanges || [])].sort((a, b) => a.index - b.index);
+    let delayCursor = 0;
+    let elapsedMs = 0;
+    for (let i = 0; i < timingSlices; i += 1) {
+      while (delayCursor < delayChanges.length && delayChanges[delayCursor].index <= i) {
+        elapsedMs += Math.max(0, delayChanges[delayCursor].delaySeconds * 1000);
+        delayCursor += 1;
+      }
+      if (i < bar.length) {
+        charTimings[i] = elapsedMs;
+      }
+      const bpm = getEffectiveBpm(params, Math.min(i, bar.length));
+      const stepMs = ((params.measureRatio / timingSlices) * 240000) / bpm;
+      elapsedMs += stepMs;
+      if (i + 1 <= bar.length) {
+        charTimings[i + 1] = elapsedMs;
+      }
+    }
+    while (delayCursor < delayChanges.length && delayChanges[delayCursor].index <= timingSlices) {
+      elapsedMs += Math.max(0, delayChanges[delayCursor].delaySeconds * 1000);
+      delayCursor += 1;
+      charTimings[bar.length] = elapsedMs;
+    }
+
+    const scrollChanges = [...(params.scrollChanges || [])].sort((a, b) => a.index - b.index);
+    for (const change of scrollChanges) {
+      const idx = Math.max(0, Math.min(bar.length, change.index));
+      pushScrollAnchor(currentMs + charTimings[idx], change.scroll);
     }
 
     for (let charIndex = 0; charIndex < bar.length; charIndex += 1) {
       const note = bar[charIndex];
       const eventTimeMs = currentMs + charTimings[charIndex];
+      const eventScroll = getEffectiveScroll(params, charIndex);
 
       flatEvents.push({
         barIndex,
         charIndex,
         note,
-        timeMs: eventTimeMs
+        timeMs: eventTimeMs,
+        scroll: eventScroll
       });
 
       if (!JUDGEABLE_NOTE_SET.has(note)) continue;
@@ -76,6 +116,7 @@ export function buildTimeline(playableChart, initialTimeMs = 0) {
         id: `${barIndex}-${charIndex}-${noteOrdinal}`,
         type: laneType,
         isBig: isBigNoteType(note),
+        scroll: eventScroll,
         timeMs: eventTimeMs,
         judged: false,
         result: null,
@@ -83,7 +124,7 @@ export function buildTimeline(playableChart, initialTimeMs = 0) {
       });
     }
 
-    currentMs += charTimings[bar.length];
+    currentMs += elapsedMs;
   }
 
   const rolls = [];
@@ -94,15 +135,19 @@ export function buildTimeline(playableChart, initialTimeMs = 0) {
     const current = flatEvents[i];
     if (current.note === NoteType.Drumroll || current.note === NoteType.DrumrollBig) {
       let endTimeMs = currentMs;
+      let endScroll = current.scroll;
       for (let j = i + 1; j < flatEvents.length; j += 1) {
         if (flatEvents[j].note === NoteType.End) {
           endTimeMs = flatEvents[j].timeMs;
+          endScroll = Number.isFinite(flatEvents[j].scroll) ? flatEvents[j].scroll : endScroll;
           break;
         }
       }
       rolls.push({
         id: `roll-${current.barIndex}-${current.charIndex}`,
         isBig: current.note === NoteType.DrumrollBig,
+        scrollStart: current.scroll,
+        scrollEnd: endScroll,
         startMs: current.timeMs,
         endMs: Math.max(current.timeMs + 80, endTimeMs)
       });
@@ -122,6 +167,7 @@ export function buildTimeline(playableChart, initialTimeMs = 0) {
       balloons.push({
         id: `balloon-${current.barIndex}-${current.charIndex}`,
         isBig: current.note === NoteType.Kusudama,
+        scroll: current.scroll,
         timeMs: current.timeMs,
         endMs: Math.max(current.timeMs + 320, endTimeMs),
         requiredHits,
@@ -137,7 +183,8 @@ export function buildTimeline(playableChart, initialTimeMs = 0) {
     notes,
     barLines,
     rolls,
-    balloons
+    balloons,
+    scrollAnchors
   };
 }
 
@@ -158,6 +205,10 @@ function shiftTimeline(timeline, deltaMs) {
       timeMs: balloon.timeMs + deltaMs,
       endMs: balloon.endMs + deltaMs,
       pulseAtMs: Number.isFinite(balloon.pulseAtMs) ? balloon.pulseAtMs + deltaMs : balloon.pulseAtMs
+    })),
+    scrollAnchors: (timeline.scrollAnchors || []).map((anchor) => ({
+      ...anchor,
+      timeMs: anchor.timeMs + deltaMs
     }))
   };
 }

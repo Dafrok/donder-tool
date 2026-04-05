@@ -123,6 +123,7 @@ function PracticeModePage() {
   const [rollBalloonHits, setRollBalloonHits] = useState(0);
   const [streakHits, setStreakHits] = useState(0);
   const [balloons, setBalloons] = useState([]);
+  const [scrollAnchors, setScrollAnchors] = useState([]);
   const [durationMs, setDurationMs] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -763,6 +764,7 @@ function PracticeModePage() {
       setRollBalloonHits(0);
       setStreakHits(0);
       setBalloons([]);
+      setScrollAnchors([]);
       setDurationMs(0);
       setScrollPxPerMs(DEFAULT_NOTE_SCROLL_PX_PER_MS);
       setAudioSyncOffsetMs(0);
@@ -783,6 +785,7 @@ function PracticeModePage() {
     setRollBalloonHits(0);
     setStreakHits(0);
     setBalloons(timeline.balloons || []);
+    setScrollAnchors(timeline.scrollAnchors || []);
     setDurationMs(timeline.durationMs || 0);
     setScrollPxPerMs(computeScrollPxPerMsByBpm(getChartReferenceBpm(resolvedChart)));
     setAudioSyncOffsetMs(nextAudioSyncOffsetMs);
@@ -843,7 +846,8 @@ function PracticeModePage() {
 
         if (nowPerf - driftDisplayUpdateAtRef.current >= DRIFT_MONITOR_UPDATE_MS) {
           driftDisplayUpdateAtRef.current = nowPerf;
-          setClockDriftMs(Math.round(audioClockMs - current));
+          const feltSyncDeltaMs = audioClockMs - current;
+          setClockDriftMs(Math.round(feltSyncDeltaMs));
         }
       }
     }
@@ -1393,6 +1397,7 @@ function PracticeModePage() {
     setBarLines(timeline.barLines || []);
     setRolls(timeline.rolls || []);
     setBalloons(timeline.balloons || []);
+    setScrollAnchors(timeline.scrollAnchors || []);
     setRollBalloonHits(0);
     setStreakHits(0);
     setDurationMs(timeline.durationMs);
@@ -1474,6 +1479,7 @@ function PracticeModePage() {
       setBarLines([]);
       setRolls([]);
       setBalloons([]);
+      setScrollAnchors([]);
       setRollBalloonHits(0);
       setStreakHits(0);
       setDurationMs(0);
@@ -1490,34 +1496,116 @@ function PracticeModePage() {
     }
   }, [stopLoop, stopAudioPlayback, importFromZip, applyImportedTjaText, replaceAudioObjectUrl]);
 
+  const scrollTimelineIntegral = useMemo(() => {
+    const validAnchors = (scrollAnchors || [])
+      .filter((anchor) => Number.isFinite(anchor?.timeMs) && Number.isFinite(anchor?.scroll))
+      .sort((a, b) => a.timeMs - b.timeMs);
+
+    if (!validAnchors.length) {
+      return {
+        times: [0],
+        scrolls: [1],
+        areas: [0]
+      };
+    }
+
+    const dedupedAnchors = [];
+    for (const anchor of validAnchors) {
+      const last = dedupedAnchors[dedupedAnchors.length - 1];
+      if (last && Math.abs(last.timeMs - anchor.timeMs) < 0.0001) {
+        last.scroll = anchor.scroll;
+      } else {
+        dedupedAnchors.push({
+          timeMs: anchor.timeMs,
+          scroll: anchor.scroll
+        });
+      }
+    }
+
+    const times = dedupedAnchors.map((anchor) => anchor.timeMs);
+    const scrolls = dedupedAnchors.map((anchor) => anchor.scroll);
+    const areas = new Array(dedupedAnchors.length).fill(0);
+
+    for (let i = 1; i < dedupedAnchors.length; i += 1) {
+      const deltaMs = times[i] - times[i - 1];
+      areas[i] = areas[i - 1] + deltaMs * scrolls[i - 1];
+    }
+
+    return {
+      times,
+      scrolls,
+      areas
+    };
+  }, [scrollAnchors]);
+
+  const getScrollIntegralAt = useCallback((timeMs) => {
+    if (!Number.isFinite(timeMs)) return 0;
+    const { times, scrolls, areas } = scrollTimelineIntegral;
+    if (!times.length) {
+      return timeMs;
+    }
+
+    const firstTime = times[0];
+    if (timeMs <= firstTime) {
+      return (timeMs - firstTime) * scrolls[0];
+    }
+
+    const lastIndex = times.length - 1;
+    if (timeMs >= times[lastIndex]) {
+      return areas[lastIndex] + (timeMs - times[lastIndex]) * scrolls[lastIndex];
+    }
+
+    let low = 0;
+    let high = lastIndex;
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      if (times[mid] <= timeMs) {
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+
+    const segmentIndex = Math.max(0, Math.min(lastIndex, high));
+    return areas[segmentIndex] + (timeMs - times[segmentIndex]) * scrolls[segmentIndex];
+  }, [scrollTimelineIntegral]);
+
+  const getLaneXAtTime = useCallback((targetTimeMs, currentTimeMs) => {
+    if (!Number.isFinite(targetTimeMs) || !Number.isFinite(currentTimeMs)) {
+      return LANE_TARGET_X;
+    }
+    const travel = getScrollIntegralAt(targetTimeMs) - getScrollIntegralAt(currentTimeMs);
+    return LANE_TARGET_X + travel * scrollPxPerMs;
+  }, [getScrollIntegralAt, scrollPxPerMs]);
+
   const visibleNotes = useMemo(() => {
     return notes
       .filter((note) => note.timeMs >= suppressNotesBeforeMsRef.current)
       .filter((note) => !note.judged || note.result === 'miss')
       .map((note) => {
-        const x = LANE_TARGET_X + (note.timeMs - nowMs) * scrollPxPerMs;
+        const x = getLaneXAtTime(note.timeMs, nowMs);
         return {
           ...note,
           x
         };
       })
       .filter((note) => note.x > -60 && note.x < 1800);
-  }, [notes, nowMs, scrollPxPerMs]);
+  }, [notes, nowMs, getLaneXAtTime]);
 
   const visibleBarLines = useMemo(() => {
     return barLines
       .map((barLine) => ({
         ...barLine,
-        x: LANE_TARGET_X + (barLine.timeMs - nowMs) * scrollPxPerMs
+        x: getLaneXAtTime(barLine.timeMs, nowMs)
       }))
       .filter((barLine) => barLine.x > -80 && barLine.x < 1920);
-  }, [barLines, nowMs, scrollPxPerMs]);
+  }, [barLines, nowMs, getLaneXAtTime]);
 
   const visibleRolls = useMemo(() => {
     return rolls
       .map((roll) => {
-        const xStart = LANE_TARGET_X + (roll.startMs - nowMs) * scrollPxPerMs;
-        const xEnd = LANE_TARGET_X + (roll.endMs - nowMs) * scrollPxPerMs;
+        const xStart = getLaneXAtTime(roll.startMs, nowMs);
+        const xEnd = getLaneXAtTime(roll.endMs, nowMs);
         return {
           ...roll,
           xStart,
@@ -1525,15 +1613,15 @@ function PracticeModePage() {
         };
       })
       .filter((roll) => roll.xEnd > -120 && roll.xStart < 1920);
-  }, [rolls, nowMs, scrollPxPerMs]);
+  }, [rolls, nowMs, getLaneXAtTime]);
 
   const visibleBalloons = useMemo(() => {
     return balloons
       .map((balloon) => {
         const isHoldingAtJudge = nowMs >= balloon.timeMs && nowMs <= balloon.endMs && !balloon.popped;
         const approachX = nowMs > balloon.endMs
-          ? LANE_TARGET_X + (balloon.endMs - nowMs) * scrollPxPerMs
-          : LANE_TARGET_X + (balloon.timeMs - nowMs) * scrollPxPerMs;
+          ? getLaneXAtTime(balloon.endMs, nowMs)
+          : getLaneXAtTime(balloon.timeMs, nowMs);
         const pulseElapsed = Number.isFinite(balloon.pulseAtMs) ? nowMs - balloon.pulseAtMs : Infinity;
         const pulseScale = pulseElapsed >= 0 && pulseElapsed <= BALLOON_PULSE_MS
           ? 1 + Math.sin((pulseElapsed / BALLOON_PULSE_MS) * Math.PI) * 0.18
@@ -1546,7 +1634,7 @@ function PracticeModePage() {
         };
       })
       .filter((balloon) => !balloon.popped && balloon.x > -220 && balloon.x < 1920);
-  }, [balloons, nowMs, scrollPxPerMs]);
+  }, [balloons, nowMs, getLaneXAtTime]);
 
   const activeRollForDisplay = useMemo(() => {
     return rolls.find((roll) => nowMs >= roll.startMs && nowMs <= roll.endMs + ROLL_COUNT_HOLD_MS) || null;
@@ -1702,8 +1790,8 @@ function PracticeModePage() {
       ? `${progressPercent}%  ${currentBar}/${totalBars} 小节`
       : `${progressPercent}%  -/- 小节`;
     const driftText = Number.isFinite(clockDriftMs)
-      ? `偏差 ${clockDriftMs > 0 ? '+' : ''}${clockDriftMs}ms`
-      : '偏差 --ms';
+      ? `体感偏差 ${clockDriftMs > 0 ? '+' : ''}${clockDriftMs}ms`
+      : '体感偏差 --ms';
     const laneInfoText = isDriftMonitorVisible ? `${progressText}  ${driftText}` : progressText;
 
     ctx.fillStyle = '#b83a10';
@@ -2555,7 +2643,7 @@ function PracticeModePage() {
                       label={showDriftMonitorInputValue ? '显示' : '隐藏'}
                       onChange={(_, data) => setShowDriftMonitorInputValue(Boolean(data?.checked))}
                     />
-                    <p className="practice-setting-help">显示后会在进度旁标注当前音画偏差毫秒值（用于校准和观察漂移）。</p>
+                    <p className="practice-setting-help">显示后会在进度旁标注修正后的实时体感偏差毫秒值；越接近 0 通常越容易打准判定。</p>
                   </div>
                 </div>
               </DialogContent>
