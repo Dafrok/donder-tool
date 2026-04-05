@@ -78,8 +78,9 @@ const DRIFT_INTEGRAL_GAIN_PER_SEC = 0.38;
 const DRIFT_INTEGRAL_LEAK_PER_SEC = 0.08;
 const DRIFT_INTEGRAL_MAX_MS = 26;
 const DRIFT_TARGET_DEADZONE_MS = 1;
-const DRIFT_HARD_CHASE_GAIN = 0.72;
-const MAX_DRIFT_HARD_CHASE_MS = 24;
+const DRIFT_PERSISTENT_CHASE_GAIN_PER_SEC = 8.5;
+const DRIFT_PERSISTENT_CHASE_MAX_STEP_MS = 6;
+const DRIFT_PERSISTENT_CHASE_MAX_MS = 150;
 const MAX_DRIFT_SAMPLE_MS = 220;
 const MAX_DRIFT_CORRECTION_MS = 110;
 const DRIFT_BASELINE_WARMUP_MS = 160;
@@ -123,6 +124,7 @@ function PracticeModePage() {
   const driftBaselineForceTargetMsRef = useRef(Number.POSITIVE_INFINITY);
   const driftResidualIntegralMsRef = useRef(0);
   const driftLastAudioElapsedMsRef = useRef(-1);
+  const driftPersistentCorrectionMsRef = useRef(0);
 
   const [, setStatusText] = useState('准备就绪：导入本地 TJA 后点击开始。按键：F/J=咚，D/K=咔。');
   const [songTitle, setSongTitle] = useState('');
@@ -766,6 +768,7 @@ function PracticeModePage() {
     driftBaselineForceTargetMsRef.current = Number.POSITIVE_INFINITY;
     driftResidualIntegralMsRef.current = 0;
     driftLastAudioElapsedMsRef.current = -1;
+    driftPersistentCorrectionMsRef.current = 0;
     setClockDriftMs(0);
     setHitFxTick((prev) => prev + 1);
     setStatusText('已重置，点击开始进行练习。');
@@ -793,6 +796,7 @@ function PracticeModePage() {
       driftBaselineForceTargetMsRef.current = Number.POSITIVE_INFINITY;
       driftResidualIntegralMsRef.current = 0;
       driftLastAudioElapsedMsRef.current = -1;
+      driftPersistentCorrectionMsRef.current = 0;
       return;
     }
 
@@ -821,6 +825,7 @@ function PracticeModePage() {
       : chartStartOffsetMs + DRIFT_BASELINE_FORCE_DELAY_MS;
     driftResidualIntegralMsRef.current = 0;
     driftLastAudioElapsedMsRef.current = -1;
+    driftPersistentCorrectionMsRef.current = 0;
   }, [chartStartOffsetMs]);
 
   const getCurrentChartTimeMs = useCallback(() => {
@@ -905,20 +910,35 @@ function PracticeModePage() {
           integralCorrectionMs = driftResidualIntegralMsRef.current;
         }
         // Apply learned baseline directly so fixed device offset truly affects chart clock,
-        // then use capped residual correction and a bounded integral term to remove steady-state bias.
-        current = perfClockMs + driftBaselineAppliedMsRef.current + residualCorrectionMs + integralCorrectionMs;
-
-        let feltSyncDeltaMs = audioClockMs - current;
-        if (Math.abs(feltSyncDeltaMs) > DRIFT_TARGET_DEADZONE_MS) {
-          const signedDeadzone = Math.sign(feltSyncDeltaMs) * DRIFT_TARGET_DEADZONE_MS;
-          const chaseError = feltSyncDeltaMs - signedDeadzone;
-          const hardChaseMs = Math.max(
-            -MAX_DRIFT_HARD_CHASE_MS,
-            Math.min(MAX_DRIFT_HARD_CHASE_MS, chaseError * DRIFT_HARD_CHASE_GAIN)
-          );
-          current += hardChaseMs;
-          feltSyncDeltaMs = audioClockMs - current;
+        // then use capped residual correction plus integral and persistent chase terms.
+        let persistentCorrectionMs = driftPersistentCorrectionMsRef.current;
+        if (deltaAudioMs > 0) {
+          const dt = deltaAudioMs / 1000;
+          const provisionalCurrent =
+            perfClockMs + driftBaselineAppliedMsRef.current + residualCorrectionMs + integralCorrectionMs + persistentCorrectionMs;
+          const provisionalFeltDeltaMs = audioClockMs - provisionalCurrent;
+          if (Math.abs(provisionalFeltDeltaMs) > DRIFT_TARGET_DEADZONE_MS) {
+            const signedDeadzone = Math.sign(provisionalFeltDeltaMs) * DRIFT_TARGET_DEADZONE_MS;
+            const chaseError = provisionalFeltDeltaMs - signedDeadzone;
+            const chaseDeltaMs = Math.max(
+              -DRIFT_PERSISTENT_CHASE_MAX_STEP_MS,
+              Math.min(
+                DRIFT_PERSISTENT_CHASE_MAX_STEP_MS,
+                chaseError * DRIFT_PERSISTENT_CHASE_GAIN_PER_SEC * dt
+              )
+            );
+            persistentCorrectionMs += chaseDeltaMs;
+            persistentCorrectionMs = Math.max(
+              -DRIFT_PERSISTENT_CHASE_MAX_MS,
+              Math.min(DRIFT_PERSISTENT_CHASE_MAX_MS, persistentCorrectionMs)
+            );
+            driftPersistentCorrectionMsRef.current = persistentCorrectionMs;
+          }
         }
+
+        current =
+          perfClockMs + driftBaselineAppliedMsRef.current + residualCorrectionMs + integralCorrectionMs + persistentCorrectionMs;
+        const feltSyncDeltaMs = audioClockMs - current;
 
         if (nowPerf - driftDisplayUpdateAtRef.current >= DRIFT_MONITOR_UPDATE_MS) {
           driftDisplayUpdateAtRef.current = nowPerf;
@@ -987,6 +1007,7 @@ function PracticeModePage() {
       : chartStartOffsetMs + DRIFT_BASELINE_FORCE_DELAY_MS;
     driftResidualIntegralMsRef.current = 0;
     driftLastAudioElapsedMsRef.current = -1;
+    driftPersistentCorrectionMsRef.current = 0;
     setClockDriftMs(0);
     setRollBalloonHits(0);
     setStreakHits(0);
@@ -1485,6 +1506,7 @@ function PracticeModePage() {
       : resolvedChartStartOffsetMs + DRIFT_BASELINE_FORCE_DELAY_MS;
     driftResidualIntegralMsRef.current = 0;
     driftLastAudioElapsedMsRef.current = -1;
+    driftPersistentCorrectionMsRef.current = 0;
     setRollBalloonHits(0);
     setStreakHits(0);
     setDurationMs(timeline.durationMs);
@@ -1569,6 +1591,7 @@ function PracticeModePage() {
       driftBaselineForceTargetMsRef.current = Number.POSITIVE_INFINITY;
       driftResidualIntegralMsRef.current = 0;
       driftLastAudioElapsedMsRef.current = -1;
+      driftPersistentCorrectionMsRef.current = 0;
       setRollBalloonHits(0);
       setStreakHits(0);
       setDurationMs(0);
