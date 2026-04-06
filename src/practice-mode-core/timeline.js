@@ -29,6 +29,13 @@ export function buildJudgeParticles() {
 export function buildTimeline(playableChart, initialTimeMs = 0) {
   const bars = playableChart?.bars || [];
   const barParams = playableChart?.barParams || [];
+  const referenceBpm = Math.max(1, getChartReferenceBpm(playableChart));
+
+  const computeSpeedScale = (scroll, bpm) => {
+    const safeScroll = Number.isFinite(scroll) ? scroll : 1;
+    const safeBpm = Number.isFinite(bpm) && bpm > 0 ? bpm : referenceBpm;
+    return Math.max(0.05, Math.abs(safeScroll) * (safeBpm / referenceBpm));
+  };
 
   let currentMs = initialTimeMs;
   let noteOrdinal = 0;
@@ -55,9 +62,14 @@ export function buildTimeline(playableChart, initialTimeMs = 0) {
     }
 
     if (barIndex > 0) {
+      const barStartScroll = getEffectiveScroll(params, 0);
+      const barStartBpm = getEffectiveBpm(params, 0);
       barLines.push({
         id: `bar-${barIndex}`,
-        timeMs: currentMs
+        timeMs: currentMs,
+        scroll: barStartScroll,
+        bpm: barStartBpm,
+        speedScale: computeSpeedScale(barStartScroll, barStartBpm)
       });
     }
 
@@ -99,13 +111,17 @@ export function buildTimeline(playableChart, initialTimeMs = 0) {
       const note = bar[charIndex];
       const eventTimeMs = currentMs + charTimings[charIndex];
       const eventScroll = getEffectiveScroll(params, charIndex);
+      const eventBpm = getEffectiveBpm(params, charIndex);
+      const eventSpeedScale = computeSpeedScale(eventScroll, eventBpm);
 
       flatEvents.push({
         barIndex,
         charIndex,
         note,
         timeMs: eventTimeMs,
-        scroll: eventScroll
+        scroll: eventScroll,
+        bpm: eventBpm,
+        speedScale: eventSpeedScale
       });
 
       if (!JUDGEABLE_NOTE_SET.has(note)) continue;
@@ -117,6 +133,8 @@ export function buildTimeline(playableChart, initialTimeMs = 0) {
         type: laneType,
         isBig: isBigNoteType(note),
         scroll: eventScroll,
+        bpm: eventBpm,
+        speedScale: eventSpeedScale,
         timeMs: eventTimeMs,
         judged: false,
         result: null,
@@ -136,10 +154,14 @@ export function buildTimeline(playableChart, initialTimeMs = 0) {
     if (current.note === NoteType.Drumroll || current.note === NoteType.DrumrollBig) {
       let endTimeMs = currentMs;
       let endScroll = current.scroll;
+      let endBpm = current.bpm;
+      let endSpeedScale = current.speedScale;
       for (let j = i + 1; j < flatEvents.length; j += 1) {
         if (flatEvents[j].note === NoteType.End) {
           endTimeMs = flatEvents[j].timeMs;
           endScroll = Number.isFinite(flatEvents[j].scroll) ? flatEvents[j].scroll : endScroll;
+          endBpm = Number.isFinite(flatEvents[j].bpm) ? flatEvents[j].bpm : endBpm;
+          endSpeedScale = Number.isFinite(flatEvents[j].speedScale) ? flatEvents[j].speedScale : endSpeedScale;
           break;
         }
       }
@@ -147,7 +169,11 @@ export function buildTimeline(playableChart, initialTimeMs = 0) {
         id: `roll-${current.barIndex}-${current.charIndex}`,
         isBig: current.note === NoteType.DrumrollBig,
         scrollStart: current.scroll,
+        bpmStart: current.bpm,
+        speedScaleStart: current.speedScale,
         scrollEnd: endScroll,
+        bpmEnd: endBpm,
+        speedScaleEnd: endSpeedScale,
         startMs: current.timeMs,
         endMs: Math.max(current.timeMs + 80, endTimeMs)
       });
@@ -168,6 +194,8 @@ export function buildTimeline(playableChart, initialTimeMs = 0) {
         id: `balloon-${current.barIndex}-${current.charIndex}`,
         isBig: current.note === NoteType.Kusudama,
         scroll: current.scroll,
+        bpm: current.bpm,
+        speedScale: current.speedScale,
         timeMs: current.timeMs,
         endMs: Math.max(current.timeMs + 320, endTimeMs),
         requiredHits,

@@ -1870,7 +1870,9 @@ function PracticeModePage() {
       .map((note) => {
         const noteScroll = Number.isFinite(note.scroll) ? note.scroll : 1;
         const direction = noteScroll < 0 ? -1 : 1;
-        const speedScale = Math.max(0.05, Math.abs(noteScroll));
+        const speedScale = Number.isFinite(note.speedScale)
+          ? Math.max(0.05, note.speedScale)
+          : Math.max(0.05, Math.abs(noteScroll));
         const x = LANE_TARGET_X + (note.timeMs - nowMs) * effectiveScrollPxPerMs * speedScale * direction;
         return {
           ...note,
@@ -1882,10 +1884,17 @@ function PracticeModePage() {
 
   const visibleBarLines = useMemo(() => {
     return barLines
-      .map((barLine) => ({
-        ...barLine,
-        x: LANE_TARGET_X + (barLine.timeMs - nowMs) * effectiveScrollPxPerMs
-      }))
+      .map((barLine) => {
+        const lineScroll = Number.isFinite(barLine.scroll) ? barLine.scroll : 1;
+        const direction = lineScroll < 0 ? -1 : 1;
+        const speedScale = Number.isFinite(barLine.speedScale)
+          ? Math.max(0.05, barLine.speedScale)
+          : Math.max(0.05, Math.abs(lineScroll));
+        return {
+          ...barLine,
+          x: LANE_TARGET_X + (barLine.timeMs - nowMs) * effectiveScrollPxPerMs * speedScale * direction
+        };
+      })
       .filter((barLine) => barLine.x > -80 && barLine.x < 1920);
   }, [barLines, nowMs, effectiveScrollPxPerMs]);
 
@@ -1896,8 +1905,12 @@ function PracticeModePage() {
         const endScroll = Number.isFinite(roll.scrollEnd) ? roll.scrollEnd : startScroll;
         const startDirection = startScroll < 0 ? -1 : 1;
         const endDirection = endScroll < 0 ? -1 : 1;
-        const startSpeedScale = Math.max(0.05, Math.abs(startScroll));
-        const endSpeedScale = Math.max(0.05, Math.abs(endScroll));
+        const startSpeedScale = Number.isFinite(roll.speedScaleStart)
+          ? Math.max(0.05, roll.speedScaleStart)
+          : Math.max(0.05, Math.abs(startScroll));
+        const endSpeedScale = Number.isFinite(roll.speedScaleEnd)
+          ? Math.max(0.05, roll.speedScaleEnd)
+          : Math.max(0.05, Math.abs(endScroll));
         const xStart = LANE_TARGET_X + (roll.startMs - nowMs) * effectiveScrollPxPerMs * startSpeedScale * startDirection;
         const xEnd = LANE_TARGET_X + (roll.endMs - nowMs) * effectiveScrollPxPerMs * endSpeedScale * endDirection;
         return {
@@ -1915,7 +1928,9 @@ function PracticeModePage() {
         const isHoldingAtJudge = nowMs >= balloon.timeMs && nowMs <= balloon.endMs && !balloon.popped;
         const balloonScroll = Number.isFinite(balloon.scroll) ? balloon.scroll : 1;
         const balloonDirection = balloonScroll < 0 ? -1 : 1;
-        const balloonSpeedScale = Math.max(0.05, Math.abs(balloonScroll));
+        const balloonSpeedScale = Number.isFinite(balloon.speedScale)
+          ? Math.max(0.05, balloon.speedScale)
+          : Math.max(0.05, Math.abs(balloonScroll));
         const approachX = nowMs > balloon.endMs
           ? LANE_TARGET_X + (balloon.endMs - nowMs) * effectiveScrollPxPerMs * balloonSpeedScale * balloonDirection
           : LANE_TARGET_X + (balloon.timeMs - nowMs) * effectiveScrollPxPerMs * balloonSpeedScale * balloonDirection;
