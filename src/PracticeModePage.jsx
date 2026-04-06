@@ -872,7 +872,7 @@ function PracticeModePage() {
       stroke: '#2a3342',
       burstColor: null,
       particles: [],
-      fontSize: 40,
+      fontSize: 42,
       isRollCombo: true
     }];
     setHitFxTick((prev) => prev + 1);
