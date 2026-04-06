@@ -87,6 +87,7 @@ const DRIFT_PERSISTENT_CHASE_MAX_STEP_MS = 6;
 const DRIFT_PERSISTENT_CHASE_MAX_MS = 150;
 const MAX_DRIFT_SAMPLE_MS = 220;
 const MAX_DRIFT_CORRECTION_MS = 110;
+const HARD_DESYNC_RESYNC_MS = 700;
 const DRIFT_BASELINE_WARMUP_MS = 160;
 const DRIFT_BASELINE_WINDOW_MS = 2200;
 const DRIFT_BASELINE_MIN_SAMPLES = 12;
@@ -1044,6 +1045,25 @@ function PracticeModePage() {
       } else if (!audioRef.current.paused && Number.isFinite(audioRef.current.currentTime)) {
         const audioClockMs = audioRef.current.currentTime * 1000 + audioSyncOffsetMs - touchAudioLatencyCompensationMs;
         const audioElapsedMs = audioRef.current.currentTime * 1000;
+        const hardDesyncMs = audioClockMs - perfClockMs;
+
+        // Recover immediately when media clock and chart clock diverge too far
+        // (observed on some iOS startup/seek paths).
+        if (Math.abs(hardDesyncMs) >= HARD_DESYNC_RESYNC_MS) {
+          playStartRef.current = nowPerf - ((audioElapsedMs + touchAudioLatencyCompensationMs - audioSyncOffsetMs) / globalSpeedMultiplier);
+          scheduledStartRef.current = 0;
+          driftEstimateMsRef.current = 0;
+          driftBaselineAppliedMsRef.current = 0;
+          driftResidualIntegralMsRef.current = 0;
+          driftPersistentCorrectionMsRef.current = 0;
+          current = audioClockMs;
+          if (nowPerf - driftDisplayUpdateAtRef.current >= DRIFT_MONITOR_UPDATE_MS) {
+            driftDisplayUpdateAtRef.current = nowPerf;
+            setClockDriftMs(0);
+          }
+          return current;
+        }
+
         const rawDrift = Math.max(-MAX_DRIFT_SAMPLE_MS, Math.min(MAX_DRIFT_SAMPLE_MS, audioClockMs - perfClockMs));
         const smoothedDrift = driftEstimateMsRef.current + (rawDrift - driftEstimateMsRef.current) * DRIFT_SMOOTH_FACTOR;
         driftEstimateMsRef.current = smoothedDrift;
@@ -1559,18 +1579,18 @@ function PracticeModePage() {
 
   const triggerInputFeedback = useCallback((inputType) => {
     if (!isPlaying) {
+      const now = performance.now();
+      touchGuidePulseRef.current = [
+        ...touchGuidePulseRef.current.filter((pulse) => now - pulse.time <= TOUCH_GUIDE_VIBRATION_MS),
+        { time: now, type: inputType }
+      ];
+      pushHitFlash(inputType);
+      void playInputSfx(inputType);
+
       if (isPaused) {
         resumePlayback();
       } else if (notes.length) {
         startPlayback();
-      } else {
-        const now = performance.now();
-        touchGuidePulseRef.current = [
-          ...touchGuidePulseRef.current.filter((pulse) => now - pulse.time <= TOUCH_GUIDE_VIBRATION_MS),
-          { time: now, type: inputType }
-        ];
-        pushHitFlash(inputType);
-        void playInputSfx(inputType);
       }
       return;
     }
