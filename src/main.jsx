@@ -356,7 +356,9 @@ function normalizeSongJson(songData) {
 
 function extractTjaTitle(content) {
   if (!content || typeof content !== 'string') return '';
-  const match = content.match(/^\s*TITLE\s*:\s*(.+)\s*$/im);
+  let match = content.match(/^\s*TITLEJA\s*:\s*(.+)\s*$/im);
+  if (match) return match[1].trim();
+  match = content.match(/^\s*TITLE\s*:\s*(.+)\s*$/im);
   return match ? match[1].trim() : '';
 }
 
@@ -1798,7 +1800,7 @@ function App() {
                 <Body1 className="hint">支持 .TJA 谱面，兼容任意目录结构</Body1>
               </div>
             ) : (
-              <div className="table-wrapper analysis-table-wrapper">
+              <div className="analysis-table-wrapper table-wrapper">
                 <div className="table-grid analysis-virtual-grid" role="table" aria-label="谱面分析表格">
                   <div className="analysis-virtual-header" role="rowgroup">
                     <div className="analysis-virtual-header-row" role="row">
