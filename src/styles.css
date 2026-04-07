@@ -252,14 +252,28 @@ body {
 }
 
 .topbar-hamburger {
-  width: 32px;
-  min-width: 32px;
-  height: 32px;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
   padding: 0;
   color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.38);
   background: rgba(255, 255, 255, 0.16);
   box-shadow: none;
+}
+
+.top-bar .topbar-hamburger.fui-Button {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
+}
+
+.app-nav-drawer-header .fui-Button {
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  padding: 0;
 }
 
 .topbar-hamburger:hover {
@@ -447,13 +461,33 @@ body {
   align-items: center;
   justify-content: flex-start;
   gap: 10px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   width: 100%;
-  padding: 0;
-  border: 1px solid #e3d8cc;
-  border-radius: 8px;
-  background: rgba(255, 252, 247, 0.82);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  padding: 4px 8px;
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid #f1dfcd;
+  background: transparent;
+  box-shadow: none;
+}
+
+.list-toolbar .fui-Button,
+.list-toolbar .fui-ToolbarButton,
+.list-toolbar .fui-ToolbarRadioButton {
+  font-weight: 400;
+}
+
+.list-toolbar-button {
+  flex: 0 0 auto;
+  min-height: 24px;
+  padding-inline: 6px;
+  white-space: nowrap;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.list-toolbar-button .fui-Button__icon {
+  font-size: 14px;
 }
 
 .list-toolbar-stats {
@@ -487,34 +521,6 @@ body {
   flex: 0 0 auto;
   flex-wrap: nowrap;
   min-width: max-content;
-}
-
-.list-toolbar-button {
-  flex: 0 0 auto;
-  min-height: 24px;
-  padding-inline: 6px;
-  white-space: nowrap;
-  border-radius: 6px;
-  font-size: 12px;
-  border: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-.list-toolbar-button:hover {
-  background: #eef3f8 !important;
-}
-
-.list-toolbar-button:active {
-  background: #e6edf5 !important;
-}
-
-.list-toolbar-button:disabled {
-  background: transparent !important;
-}
-
-.list-toolbar-button .fui-Button__icon {
-  font-size: 14px;
 }
 
 .list-info-bar .fui-Badge {
@@ -565,6 +571,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: #ffffff;
 }
 
 .constants-route-panel {
@@ -1995,7 +2002,7 @@ body {
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
-  gap: 4px;
+  gap: 0;
   overflow: auto;
 }
 
@@ -2023,6 +2030,10 @@ body {
   background: transparent;
   box-shadow: none;
   padding: 0;
+}
+
+.practice-toolbar-main {
+  border-bottom: 1px solid #f1dfcd;
 }
 
 .practice-toolbar-group {
@@ -2362,7 +2373,7 @@ body {
     gap: 6px;
     flex-wrap: nowrap;
     overflow-x: auto;
-    padding: 0;
+    padding: 4px 6px;
   }
 
   .list-info-bar {
@@ -2635,7 +2646,7 @@ body {
 
   .practice-wrapper {
     padding: 0;
-    gap: 4px;
+    gap: 0;
   }
 
   .practice-toolbar {

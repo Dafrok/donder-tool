@@ -1778,25 +1778,41 @@ function App() {
                   <BreadcrumbButton current aria-current="page">谱面分析</BreadcrumbButton>
                 </BreadcrumbItem>
               </Breadcrumb>
-              <Toolbar className="list-toolbar" aria-label="谱面列表工具栏">
-                <ToolbarButton
-                  className="list-toolbar-button"
-                  appearance="subtle"
-                  size="small"
-                  icon={<StarRegular />}
-                  disabled={!hasFavoriteCache}
-                  onClick={() => void restoreFavoriteSongsFromCache('手动加载收藏夹', true)}
-                >
-                  加载收藏
-                </ToolbarButton>
-                <ToolbarButton className="list-toolbar-button" appearance="subtle" size="small" icon={<ArrowUploadRegular />} onClick={() => fileInputRef.current?.click()}>
-                  上传谱面
-                </ToolbarButton>
-                <ToolbarButton className="list-toolbar-button" appearance="subtle" size="small" disabled={!allResults.length} icon={<ArrowDownloadRegular />} onClick={exportResults}>
-                  导出结果
-                </ToolbarButton>
-              </Toolbar>
             </header>
+            <Toolbar className="list-toolbar practice-toolbar practice-toolbar-main" aria-label="谱面列表工具栏">
+              <ToolbarButton
+                className="list-toolbar-button"
+                appearance="subtle"
+                icon={<StarRegular />}
+                disabled={!hasFavoriteCache}
+                aria-label="加载收藏"
+                title="加载收藏"
+                onClick={() => void restoreFavoriteSongsFromCache('手动加载收藏夹', true)}
+              >
+                加载收藏
+              </ToolbarButton>
+              <ToolbarButton
+                className="list-toolbar-button"
+                appearance="subtle"
+                icon={<ArrowUploadRegular />}
+                aria-label="上传谱面"
+                title="上传谱面"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                上传谱面
+              </ToolbarButton>
+              <ToolbarButton
+                className="list-toolbar-button"
+                appearance="subtle"
+                icon={<ArrowDownloadRegular />}
+                disabled={!allResults.length}
+                aria-label="导出结果"
+                title="导出结果"
+                onClick={exportResults}
+              >
+                导出结果
+              </ToolbarButton>
+            </Toolbar>
             {!allResults.length ? (
               <div className="drop-placeholder" role="button" tabIndex={0} onClick={() => fileInputRef.current?.click()}>
                 <div className="drop-icon">📂</div>
