@@ -22,13 +22,15 @@ def calculate_single_array_difficulty(arr):
             N = ratio - int(ratio)  # 取小数部分
     
         # 将N赋值为N和1-N中的较小值
-        N = min(N, 1 - N)
+        # N = min(N, 1 - N)
     
         # 根据N值使用不同的计算公式
-        if N < 1/3:
-            a_coeff = 2 * math.sqrt(0.25 - (0.5 * (1 - 3 * N)) ** 2)
-        else:
-            a_coeff = 2 * math.sqrt(0.25 - (0.94 * (1 - 3 * N)) ** 2)
+        # if N < 1/3:
+        #     a_coeff = 2 * math.sqrt(0.25 - (0.5 * (1 - 3 * N)) ** 2)
+        # else:
+        #     a_coeff = 2 * math.sqrt(0.25 - (0.94 * (1 - 3 * N)) ** 2)
+
+        a_coeff = 2 * math.sqrt(0.25 - (0.5 - N) ** 2)
         
         # 计算b系数（大间隔修正系数乘积）
         def get_interval_coeff(value):
