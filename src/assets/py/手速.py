@@ -6,21 +6,20 @@ def compute_weighted_average(a):
     输出: 按照题目描述的加权平均值
     """
     n = len(a) - 1
-    if n <= 0:
-        raise ValueError("数组长度必须至少为2")
+    if n <= 2:
+        raise ValueError("数组长度必须至少为4")
 
     # 1. 计算 b_i = a_i + a_{i+1}
-    b = [a[i] + a[i+1] for i in range(n)]
+    # b = [a[i] + a[i+1] for i in range(n)]
 
-    # b = []
-    # for i in range(n):
-    #     x_i = 2 * a[i]  # 第一个数
-    #     y_i = a[i] + a[i+1]  # 第二个数
-    #     weight_x = 2.0
-    #     weight_y = 1.0
-    #     # 计算加权调和平均值
-    #     b_i = (weight_x + weight_y) / (weight_x / x_i + weight_y / y_i)
-    #     b.append(b_i)
+    b = []
+    for i in range(n-2):
+        x_i = a[i] + a[i+1]
+        y_i = (a[i] + a[i+1] + a[i+2] + a[i+3]) / 2
+        weight_x = 1.0
+        weight_y = 1.0
+        b_i = (weight_x + weight_y) / (weight_x / x_i + weight_y / y_i)
+        b.append(b_i)
 
     # 2. 计算 c_i = 1000 / b_i
     c = [1000.0 / b_i for b_i in b]
@@ -29,12 +28,12 @@ def compute_weighted_average(a):
     sorted_indices = sorted(range(len(c)), key=lambda i: c[i])
 
     # 初始化排名数组
-    rank = [0] * n
+    rank = [0] * len(c)
     for rank_num, idx in enumerate(sorted_indices, start=1):
         rank[idx] = rank_num
 
-    # 4. 排名百分比 p_i = rank[i] / n
-    p = [r / n for r in rank]
+    # 4. 排名百分比 p_i = rank[i] / len(c)
+    p = [r / len(c) for r in rank]
 
     # 5. 计算权重 w_i
     w = []
