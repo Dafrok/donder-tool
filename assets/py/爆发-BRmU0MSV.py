@@ -16,7 +16,7 @@ def compute_weighted_average(a):
     for i in range(n):
         x_i = 2 * a[i]  # 第一个数
         y_i = a[i] + a[i+1]  # 第二个数
-        weight_x = 2.0
+        weight_x = 1.0
         weight_y = 1.0
         # 计算加权调和平均值
         b_i = (weight_x + weight_y) / (weight_x / x_i + weight_y / y_i)
