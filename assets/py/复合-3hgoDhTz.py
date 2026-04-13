@@ -148,12 +148,12 @@ def calculate_compound_difficulty(an: List[float], bn: List[int], T: float) -> f
             if value_to_check > upper_limit:
                 c = 1.0
             elif value_to_check < lower_limit:
-                # c = 0.0
-                c = 0.5
+                c = 0.0
+                # c = 0.5
             else:
                 # 线性插值
-                # c = (value_to_check - lower_limit) / (upper_limit - lower_limit)
-                c = 0.5 + 0.5 * (value_to_check - lower_limit) / (upper_limit - lower_limit)
+                c = (value_to_check - lower_limit) / (upper_limit - lower_limit)
+                # c = 0.5 + 0.5 * (value_to_check - lower_limit) / (upper_limit - lower_limit)
 
             
             # 计算当前元素的复合难度
