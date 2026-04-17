@@ -136,6 +136,7 @@ const ConstantsVirtualList = memo(function ConstantsVirtualList({
               </span>
             </div>
           ))}
+          <div className="constants-virtual-row-spacer constants-virtual-header-spacer" aria-hidden="true" />
         </div>
       </div>
       {filteredRows.length === 0 ? (
@@ -181,6 +182,7 @@ const ConstantsVirtualList = memo(function ConstantsVirtualList({
                     )}
                   </div>
                 ))}
+                <div className="constants-virtual-row-spacer constants-virtual-body-spacer" aria-hidden="true" />
               </div>
             );
           }}
@@ -425,8 +427,8 @@ function ConstantsTablePage({ searchKeyword = '', onCountChange, onOpenDetail, i
       return {
         width,
         minWidth: width,
-        maxWidth: width,
         flexBasis: width,
+        maxWidth: width,
         flexGrow: 0,
         flexShrink: 0
       };

@@ -651,6 +651,21 @@ body {
   min-width: 100%;
 }
 
+.constants-virtual-row-spacer {
+  flex: 1 0 0;
+  min-width: 0;
+}
+
+.constants-virtual-header-spacer {
+  background: linear-gradient(180deg, #fff4e8 0%, #ffe9d7 100%);
+  border-bottom: 1px solid #efc19d;
+}
+
+.constants-virtual-body-spacer {
+  background: #ffffff;
+  border-bottom: 1px solid #f2e3d6;
+}
+
 .constants-virtual-header-cell {
   background: linear-gradient(180deg, #fff4e8 0%, #ffe9d7 100%);
   border-bottom: 1px solid #efc19d;
