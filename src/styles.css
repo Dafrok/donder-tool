@@ -649,6 +649,10 @@ body {
   min-width: 100%;
 }
 
+.constants-virtual-row {
+  min-height: 44px;
+}
+
 .constants-virtual-row-spacer {
   flex: 1 0 0;
   min-width: 0;
@@ -729,9 +733,16 @@ body {
 
 .constants-virtual-row .constants-virtual-cell {
   border-bottom: 1px solid #f2e3d6;
+  height: 44px;
   align-items: center;
   white-space: normal;
   line-height: 1.25;
+}
+
+.constants-virtual-spacer {
+  width: max-content;
+  min-width: 100%;
+  background: #ffffff;
 }
 
 .constants-cell-text {

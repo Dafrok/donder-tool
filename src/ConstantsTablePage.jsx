@@ -10,6 +10,8 @@ import {
 } from '@fluentui/react-components';
 
 let constantsCache = null;
+const ROW_HEIGHT = 44;
+const VIRTUAL_OVERSCAN_ROWS = 10;
 const MIN_NON_FIRST_COL_WIDTH = 120;
 const CONSTANT_COLUMN_NAME_SET = new Set(['主定数', '总定数', '定数', '体力', '手速', '爆发', '节奏', '复合']);
 let textMeasureContext = null;
@@ -117,7 +119,9 @@ function getConstantValueToneClass(value) {
 
 const ConstantsVirtualList = memo(function ConstantsVirtualList({
   headers,
-  filteredRows,
+  visibleRows,
+  topSpacerHeight,
+  bottomSpacerHeight,
   columnStyles,
   constantColumnIndexes,
   categoryColumnIndex,
@@ -149,7 +153,7 @@ const ConstantsVirtualList = memo(function ConstantsVirtualList({
           <div className="constants-virtual-row-spacer constants-virtual-header-spacer" aria-hidden="true" />
         </div>
       </div>
-      {filteredRows.length === 0 ? (
+      {visibleRows.length === 0 && topSpacerHeight === 0 && bottomSpacerHeight === 0 ? (
         <div className="constants-virtual-scroll-root" aria-label="空列表">
           <div className="constants-loading-wrap">
             <Body1>没有匹配的数据</Body1>
@@ -157,7 +161,8 @@ const ConstantsVirtualList = memo(function ConstantsVirtualList({
         </div>
       ) : (
         <div className="constants-virtual-scroll-root" aria-label="定数列表">
-          {filteredRows.map((item) => (
+          {topSpacerHeight > 0 ? <div className="constants-virtual-spacer" style={{ height: `${topSpacerHeight}px` }} aria-hidden="true" /> : null}
+          {visibleRows.map((item) => (
             <div key={item.id} className="constants-row constants-virtual-row" role="row" onClick={() => openDetail(item)}>
               {headers.map((header, columnIndex) => (
                 <div
@@ -191,6 +196,7 @@ const ConstantsVirtualList = memo(function ConstantsVirtualList({
               <div className="constants-virtual-row-spacer constants-virtual-body-spacer" aria-hidden="true" />
             </div>
           ))}
+          {bottomSpacerHeight > 0 ? <div className="constants-virtual-spacer" style={{ height: `${bottomSpacerHeight}px` }} aria-hidden="true" /> : null}
         </div>
       )}
     </div>
@@ -248,6 +254,10 @@ function ConstantsTablePage({ searchKeyword = '', onCountChange, onOpenDetail, i
   const pendingRaf1Ref = useRef(0);
   const pendingRaf2Ref = useRef(0);
   const pendingTimerRef = useRef(0);
+  const tableWrapperRef = useRef(null);
+  const scrollUpdateRafRef = useRef(0);
+  const [virtualViewportHeight, setVirtualViewportHeight] = useState(0);
+  const [virtualScrollTop, setVirtualScrollTop] = useState(0);
 
   const clearPendingSchedule = useCallback(() => {
     if (pendingRaf1Ref.current) {
@@ -312,6 +322,14 @@ function ConstantsTablePage({ searchKeyword = '', onCountChange, onOpenDetail, i
       clearPendingSchedule();
     };
   }, [clearPendingSchedule]);
+
+  useEffect(() => {
+    return () => {
+      if (scrollUpdateRafRef.current) {
+        window.cancelAnimationFrame(scrollUpdateRafRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (isActive) {
@@ -392,6 +410,66 @@ function ConstantsTablePage({ searchKeyword = '', onCountChange, onOpenDetail, i
 
     return result;
   }, [searchKeyword, rows, sortState, headers]);
+
+  useEffect(() => {
+    const wrapper = tableWrapperRef.current;
+    if (!wrapper) return undefined;
+
+    const updateViewport = () => {
+      setVirtualViewportHeight(wrapper.clientHeight);
+    };
+
+    updateViewport();
+    const resizeObserver = new ResizeObserver(updateViewport);
+    resizeObserver.observe(wrapper);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [hasActivated]);
+
+  const handleTableWrapperScroll = useCallback((event) => {
+    const nextScrollTop = event.currentTarget.scrollTop;
+    if (scrollUpdateRafRef.current) return;
+
+    scrollUpdateRafRef.current = window.requestAnimationFrame(() => {
+      scrollUpdateRafRef.current = 0;
+      setVirtualScrollTop(nextScrollTop);
+    });
+  }, []);
+
+  const virtualRows = useMemo(() => {
+    if (!filteredRows.length) {
+      return {
+        visibleRows: [],
+        topSpacerHeight: 0,
+        bottomSpacerHeight: 0
+      };
+    }
+
+    const effectiveViewportHeight = Math.max(virtualViewportHeight, ROW_HEIGHT * 8);
+    const startIndex = Math.max(0, Math.floor(virtualScrollTop / ROW_HEIGHT) - VIRTUAL_OVERSCAN_ROWS);
+    const endIndex = Math.min(
+      filteredRows.length,
+      Math.ceil((virtualScrollTop + effectiveViewportHeight) / ROW_HEIGHT) + VIRTUAL_OVERSCAN_ROWS
+    );
+
+    return {
+      visibleRows: filteredRows.slice(startIndex, endIndex),
+      topSpacerHeight: startIndex * ROW_HEIGHT,
+      bottomSpacerHeight: (filteredRows.length - endIndex) * ROW_HEIGHT
+    };
+  }, [filteredRows, virtualScrollTop, virtualViewportHeight]);
+
+  useEffect(() => {
+    const wrapper = tableWrapperRef.current;
+    if (!wrapper) return;
+    const maxScrollTop = Math.max(0, (filteredRows.length * ROW_HEIGHT) - wrapper.clientHeight);
+    if (wrapper.scrollTop > maxScrollTop) {
+      wrapper.scrollTop = maxScrollTop;
+      setVirtualScrollTop(maxScrollTop);
+    }
+  }, [filteredRows.length]);
 
   const categoryColumnIndex = useMemo(() => findLastColumnIndex(headers, '分类'), [headers]);
   const difficultyColumnIndex = useMemo(() => findLastColumnIndex(headers, '难度'), [headers]);
@@ -526,7 +604,7 @@ function ConstantsTablePage({ searchKeyword = '', onCountChange, onOpenDetail, i
 
       </header>
 
-      <div className="constants-table-wrapper table-wrapper">
+      <div className="constants-table-wrapper table-wrapper" ref={tableWrapperRef} onScroll={handleTableWrapperScroll}>
         {loadingState.loading ? (
           <div className="constants-loading-wrap">
             <Spinner size="large" label="正在解析定数表..." />
@@ -541,7 +619,9 @@ function ConstantsTablePage({ searchKeyword = '', onCountChange, onOpenDetail, i
           <>
             <ConstantsVirtualList
               headers={headers}
-              filteredRows={filteredRows}
+              visibleRows={virtualRows.visibleRows}
+              topSpacerHeight={virtualRows.topSpacerHeight}
+              bottomSpacerHeight={virtualRows.bottomSpacerHeight}
               columnStyles={columnStyles}
               constantColumnIndexes={constantColumnIndexes}
               categoryColumnIndex={categoryColumnIndex}
