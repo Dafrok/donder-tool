@@ -12,6 +12,27 @@ import { VirtualizerScrollView } from '@fluentui/react-virtualizer';
 
 let constantsCache = null;
 const ROW_HEIGHT = 44;
+const MIN_NON_FIRST_COL_WIDTH = 120;
+let textMeasureContext = null;
+
+function estimateTextPixelWidth(text, font) {
+  const normalized = String(text || '').trim();
+  if (!normalized) return 0;
+
+  if (typeof document !== 'undefined') {
+    if (!textMeasureContext) {
+      const canvas = document.createElement('canvas');
+      textMeasureContext = canvas.getContext('2d');
+    }
+
+    if (textMeasureContext) {
+      textMeasureContext.font = font;
+      return textMeasureContext.measureText(normalized).width;
+    }
+  }
+
+  return normalized.length * 8;
+}
 
 function getCategoryBadgeClass(category) {
   const normalized = String(category || '').trim().toLowerCase();
@@ -88,6 +109,7 @@ function getDifficultyTextClass(difficulty) {
 const ConstantsVirtualList = memo(function ConstantsVirtualList({
   headers,
   filteredRows,
+  columnStyles,
   categoryColumnIndex,
   difficultyColumnIndex,
   branchColumnIndex,
@@ -106,14 +128,7 @@ const ConstantsVirtualList = memo(function ConstantsVirtualList({
               aria-colindex={columnIndex + 1}
               onClick={() => handleSort(columnIndex)}
               className={`${columnIndex === 0 ? 'sticky-first-col-header' : ''} sortable constants-virtual-cell constants-virtual-header-cell`.trim()}
-              style={columnIndex === 0
-                ? {
-                  width: 'var(--song-col-width)',
-                  minWidth: 'var(--song-col-width)',
-                  maxWidth: 'var(--song-col-width)',
-                  flexBasis: 'var(--song-col-width)'
-                }
-                : undefined}
+              style={columnStyles[columnIndex]}
             >
               <span className="header-cell-text">
                 <span className="header-title-text">{header.label}</span>
@@ -147,14 +162,7 @@ const ConstantsVirtualList = memo(function ConstantsVirtualList({
                     role="gridcell"
                     aria-colindex={columnIndex + 1}
                     className={`${columnIndex === 0 ? 'sticky-first-col-cell' : ''} constants-virtual-cell`.trim()}
-                    style={columnIndex === 0
-                      ? {
-                        width: 'var(--song-col-width)',
-                        minWidth: 'var(--song-col-width)',
-                        maxWidth: 'var(--song-col-width)',
-                        flexBasis: 'var(--song-col-width)'
-                      }
-                      : undefined}
+                    style={columnStyles[columnIndex]}
                   >
                     {columnIndex === categoryColumnIndex ? (
                       <span className={`constants-category-badge ${getCategoryBadgeClass(item.cells[columnIndex])}`.trim()}>
@@ -371,6 +379,49 @@ function ConstantsTablePage({ searchKeyword = '', onCountChange, onOpenDetail, i
   const difficultyColumnIndex = useMemo(() => findLastColumnIndex(headers, '难度'), [headers]);
   const branchColumnIndex = useMemo(() => findLastColumnIndex(headers, '分支'), [headers]);
 
+  const columnStyles = useMemo(() => {
+    if (!headers.length) return [];
+
+    return headers.map((header, columnIndex) => {
+      if (columnIndex === 0) {
+        return {
+          width: 'var(--song-col-width)',
+          minWidth: 'var(--song-col-width)',
+          maxWidth: 'var(--song-col-width)',
+          flexBasis: 'var(--song-col-width)',
+          flexGrow: 0,
+          flexShrink: 0
+        };
+      }
+
+      let computedWidth = Math.max(
+        MIN_NON_FIRST_COL_WIDTH,
+        estimateTextPixelWidth(header.label, '700 14px "Segoe UI", "Microsoft YaHei", sans-serif') + 42
+      );
+
+      for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
+        const rawText = rows[rowIndex]?.cells?.[columnIndex];
+        if (!rawText) continue;
+
+        const measuredWidth = estimateTextPixelWidth(rawText, '400 14px "Segoe UI", "Microsoft YaHei", sans-serif') + 24;
+        if (measuredWidth > computedWidth) {
+          computedWidth = measuredWidth;
+        }
+
+      }
+
+      const width = `${Math.ceil(computedWidth)}px`;
+      return {
+        width,
+        minWidth: width,
+        maxWidth: width,
+        flexBasis: width,
+        flexGrow: 0,
+        flexShrink: 0
+      };
+    });
+  }, [headers, rows]);
+
   useEffect(() => {
     if (isActive && typeof onCountChange === 'function') {
       onCountChange(filteredRows.length, rows.length);
@@ -456,6 +507,7 @@ function ConstantsTablePage({ searchKeyword = '', onCountChange, onOpenDetail, i
             <ConstantsVirtualList
               headers={headers}
               filteredRows={filteredRows}
+              columnStyles={columnStyles}
               categoryColumnIndex={categoryColumnIndex}
               difficultyColumnIndex={difficultyColumnIndex}
               branchColumnIndex={branchColumnIndex}

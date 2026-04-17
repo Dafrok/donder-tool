@@ -624,12 +624,12 @@ body {
 }
 
 .constants-grid {
-  min-width: 1220px;
+  min-width: 1300px;
   --song-col-width: 220px;
 }
 
 .constants-virtual-grid {
-  min-width: 1220px;
+  min-width: 1300px;
   --song-col-width: 220px;
   display: flex;
   flex-direction: column;
@@ -834,6 +834,7 @@ body {
 .constants-virtual-scroll-root {
   flex: 1 1 auto;
   min-height: 0;
+  width: max-content;
   min-width: 100%;
 }
 
@@ -2449,6 +2450,11 @@ body {
     --song-col-width: 148px;
   }
 
+  .constants-grid,
+  .constants-virtual-grid {
+    min-width: 1228px;
+  }
+
   .app-nav-drawer-header {
     min-height: 53px;
     display: flex !important;
@@ -2658,6 +2664,11 @@ body {
 @media (max-width: 640px) {
   .table-grid {
     --song-col-width: 120px;
+  }
+
+  .constants-grid,
+  .constants-virtual-grid {
+    min-width: 1200px;
   }
 
   .chart-detail-body {
