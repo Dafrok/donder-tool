@@ -1848,7 +1848,7 @@ body {
 
 .sort-indicator {
   color: #b6502f;
-  font-size: 12px;
+  font-size: calc(12px * var(--list-local-zoom-scale, 1));
   flex: 0 0 auto;
 }
 

@@ -237,7 +237,7 @@ function findLastColumnIndexByNames(headers, names) {
 function clampListScale(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return 1;
-  return Math.min(1, Math.max(0.4, numeric));
+  return Math.min(1, Math.max(0.2, numeric));
 }
 
 function getTouchDistance(touchA, touchB) {
