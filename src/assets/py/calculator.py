@@ -13,6 +13,7 @@ except ImportError:
 from 节奏 import compute_final_rhythm_difficulty
 from 节奏_整体 import compute_final_rhythm_difficulty as compute_overall_rhythm_difficulty
 from 手速 import compute_weighted_average as compute_speed_weighted_average
+from 手速_95线 import compute_weighted_average as compute_speed95_weighted_average
 from 爆发 import compute_weighted_average as compute_burst_weighted_average
 
 
@@ -112,6 +113,7 @@ def calculate_difficulty_ratings(unbranched, note_types=None):
             'rhythmOverall': 0,
             'rhythmRatioOverall': 0,
             'speed': 0,
+            'speed95': 0,
             'burst': 0,
             'totalNotes': total_notes
         }
@@ -125,6 +127,7 @@ def calculate_difficulty_ratings(unbranched, note_types=None):
         'rhythmOverall': 0,
         'rhythmRatioOverall': 0,
         'speed': 0,
+        'speed95': 0,
         'burst': 0,
         'totalNotes': total_notes
     }
@@ -170,6 +173,12 @@ def calculate_difficulty_ratings(unbranched, note_types=None):
     # 计算手速定数（手速算法）
     try:
         results['speed'] = compute_speed_weighted_average(intervals)
+    except Exception:
+        pass
+
+    # 计算手速定数（95线算法）
+    try:
+        results['speed95'] = compute_speed95_weighted_average(intervals)
     except Exception:
         pass
 

@@ -98,6 +98,7 @@ const SORTABLE_COLS = {
   rhythmOverall: 'rhythmOverall',
   rhythmRatioOverall: 'rhythmRatioOverall',
   speed: 'speed',
+  speed95: 'speed95',
   burst: 'burst'
 };
 
@@ -1277,6 +1278,7 @@ function App() {
     { id: 'rhythmOverall', label: '节奏（整体）', sortable: true, renderCell: (item) => formatNumber(item.ratings.rhythmOverall) },
     { id: 'rhythmRatioOverall', label: '节奏占比（整体）', sortable: true, renderCell: (item) => formatNumber(item.ratings.rhythmRatioOverall) },
     { id: 'speed', label: '手速', sortable: true, renderCell: (item) => formatNumber(item.ratings.speed) },
+    { id: 'speed95', label: '手速（95线）', sortable: true, renderCell: (item) => formatNumber(item.ratings.speed95) },
     { id: 'burst', label: '爆发', sortable: true, renderCell: (item) => formatNumber(item.ratings.burst) },
     {
       id: 'favorite',
@@ -1684,7 +1686,7 @@ function App() {
       return;
     }
 
-    const rows = ['分类,歌曲,难度,星级,分支,Note数,体力,复合,复合难占比,节奏,节奏占比,节奏（整体）,节奏占比（整体）,手速,爆发'];
+    const rows = ['分类,歌曲,难度,星级,分支,Note数,体力,复合,复合难占比,节奏,节奏占比,节奏（整体）,节奏占比（整体）,手速,手速（95线）,爆发'];
 
     for (let songIndex = 0; songIndex < allResults.length; songIndex += 1) {
       const song = allResults[songIndex];
@@ -1695,7 +1697,7 @@ function App() {
         const level = getChartLevel(sourceSong?.data, chart.difficulty);
 
         rows.push(
-          `"${song.category}","${song.songName}","${difficultyLabel}","${level || ''}","${branchLabel}",${chart.ratings.totalNotes || 0},${chart.ratings.stamina},${chart.ratings.complex},${chart.ratings.complexRatio},${chart.ratings.rhythm},${chart.ratings.rhythmRatio},${chart.ratings.rhythmOverall},${chart.ratings.rhythmRatioOverall},${chart.ratings.speed},${chart.ratings.burst}`
+          `"${song.category}","${song.songName}","${difficultyLabel}","${level || ''}","${branchLabel}",${chart.ratings.totalNotes || 0},${chart.ratings.stamina},${chart.ratings.complex},${chart.ratings.complexRatio},${chart.ratings.rhythm},${chart.ratings.rhythmRatio},${chart.ratings.rhythmOverall},${chart.ratings.rhythmRatioOverall},${chart.ratings.speed},${chart.ratings.speed95},${chart.ratings.burst}`
         );
       }
     }

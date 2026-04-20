@@ -171,6 +171,7 @@ function ChartDetailPage({ detail, chartId = '', onBack, isFavorite = false, onT
   const ratingItems = detail?.ratings ? [
     { label: '体力', value: detail.ratings.stamina },
     { label: '手速', value: detail.ratings.speed },
+    { label: '手速（95线）', value: detail.ratings.speed95 },
     { label: '爆发', value: detail.ratings.burst },
     { label: '复合', value: formatRatingWithRatio(detail.ratings.complex, detail.ratings.complexRatio) },
     { label: '节奏', value: formatRatingWithRatio(detail.ratings.rhythm, detail.ratings.rhythmRatio) }
