@@ -38,11 +38,19 @@ def compute_weighted_average(a):
     # 5. 计算权重 w_i
     w = []
 
+    # for p_i in p:
+    #     if p_i < 0.95:
+    #         w.append(0.0)
+    #     else:
+    #         w_i = 0.5 - 0.5 * math.cos(40 * math.pi * p_i)
+    #         w.append(w_i)
+
+    # 99线
     for p_i in p:
-        if p_i < 0.95:
+        if p_i < 0.99:
             w.append(0.0)
         else:
-            w_i = 0.5 - 0.5 * math.cos(40 * math.pi * p_i)
+            w_i = 0.5 - 0.5 * math.cos(200 * math.pi * p_i)
             w.append(w_i)
 
     # 6. 计算加权平均值
